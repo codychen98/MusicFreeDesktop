@@ -28,6 +28,8 @@
     ]
   },
   "devDependencies": {
+    "webpack": "^5.0.0",
+    "@types/webpack": "^5.0.0",
     "@babel/core": "^7.22.1",
     "@babel/preset-react": "^7.22.0",
     "@electron-forge/cli": "6.4.1",
