@@ -3,8 +3,9 @@ import path from "path";
 import { localPluginName, supportLocalMediaType } from "./constant";
 import CryptoJS from "crypto-js";
 import fs from "fs/promises";
-import url from "url";
-import type { BigIntStats, PathLike, StatOptions, Stats } from "original-fs";
+import { addFileScheme } from "./file-path-util";
+
+export { addFileScheme, addTailSlash, safeStat } from "./file-path-util";
 
 function getB64Picture(picture: IPicture) {
     return `data:${picture.format};base64,${picture.data.toString("base64")}`;
@@ -84,7 +85,7 @@ export async function parseLocalMusicItem(
             id: hash,
             rawLrc: common.lyrics?.join(""),
         };
-    } catch (e) {
+    } catch {
         return {
             title: path.parse(filePath).name || filePath,
             id: hash,
@@ -121,28 +122,5 @@ export async function parseLocalMusicItemFolder(
         throw new Error("Folder Not Found");
     } catch {
         return [];
-    }
-}
-
-export function addFileScheme(filePath: string) {
-    return filePath.startsWith("file:")
-        ? filePath
-        : url.pathToFileURL(filePath).toString();
-}
-
-export function addTailSlash(filePath: string) {
-    return filePath.endsWith("/") || filePath.endsWith("\\")
-        ? filePath
-        : filePath + "/";
-}
-
-export async function safeStat(
-    path: PathLike,
-    opts?: StatOptions,
-): Promise<Stats | BigIntStats | null> {
-    try {
-        return await fs.stat(path, opts);
-    } catch {
-        return null;
     }
 }

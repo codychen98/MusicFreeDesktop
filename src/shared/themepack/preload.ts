@@ -1,4 +1,4 @@
-import { addFileScheme, addTailSlash } from "@/common/file-util";
+import { addFileScheme, addTailSlash } from "@/common/file-path-util";
 import path from "path";
 import fs from "fs/promises";
 import { Readable } from "stream";

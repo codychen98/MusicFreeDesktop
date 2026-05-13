@@ -4,7 +4,7 @@ import { localFilePathSymbol } from "@/common/constant";
 import fs from "fs/promises";
 import { delay } from "@/common/time-util";
 import axios from "axios";
-import { addFileScheme, safeStat } from "@/common/file-util";
+import { safeStat } from "@/common/file-path-util";
 import path from "path";
 
 export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
@@ -128,8 +128,8 @@ export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
         }
         // 2. 读取路径下的同名lrc文件
         const localPath =
-      getInternalData<IMusic.IMusicItemInternalData>(musicItem, "downloadData")
-          ?.path || musicItem.$$localPath;
+            getInternalData<IMusic.IMusicItemInternalData>(musicItem, "downloadData")
+                ?.path || musicItem.$$localPath;
         if (localPath) {
             const fileName = path.parse(localPath).name;
             const lrcPathWithoutExt = path.resolve(localPath, `../${fileName}`);
@@ -358,7 +358,7 @@ export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
     async importMusicSheet(urlLike: string): Promise<IMusic.IMusicItem[]> {
         try {
             const result =
-        (await this.plugin.instance?.importMusicSheet?.(urlLike)) ?? [];
+                (await this.plugin.instance?.importMusicSheet?.(urlLike)) ?? [];
             result.forEach((_) => resetMediaItem(_, this.plugin.name));
             return result;
         } catch (e: any) {
