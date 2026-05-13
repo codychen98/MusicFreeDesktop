@@ -29,8 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+           
+      - run: pnpm install
       - name: Read version
         run: |
           $version = node -p "require('./package.json').version"
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+           
       - run: pnpm install
       - name: Read version
         run: |
@@ -116,8 +116,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+           
+      - run: pnpm install
       - name: Read version
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -139,8 +139,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+           
+      - run: pnpm install
       - name: Read version
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -164,8 +164,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+           
+      - run: pnpm install
       - name: Read version
         run: |
           VERSION=$(node -p "require('./package.json').version")

@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+           
       # No pnpm-lock.yaml in repo; frozen install would fail CI
       - run: pnpm install
       - name: Read version
