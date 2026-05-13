@@ -1,0 +1,37 @@
+name: Windows Portable
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+
+concurrency:
+  group: windows-portable-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows-portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Read version
+        run: |
+          $version = node -p "require('./package.json').version"
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+      - run: npm run package
+      - name: Generate portable marker
+        run: |
+          New-Item -ItemType Directory -Path "./out/MusicFree-win32-x64/portable" -Force
+      - name: Archive portable
+        run: |
+          Compress-Archive -Path "./out/MusicFree-win32-x64/*" -DestinationPath "./out/MusicFree-${{ env.VERSION }}-win32-x64-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MusicFree-${{ env.VERSION }}-win32-x64-portable
+          path: ./out/MusicFree-${{ env.VERSION }}-win32-x64-portable.zip
+          retention-days: 30
