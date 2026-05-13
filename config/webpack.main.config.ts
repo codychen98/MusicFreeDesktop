@@ -1,7 +1,7 @@
 import type { Configuration } from "webpack";
 import path from "path";
 
-import { rules } from "./webpack.rules";
+import { getWebpackRules } from "./webpack.rules";
 
 const nodeModules = path.join(__dirname, "../node_modules");
 
@@ -19,7 +19,7 @@ export const mainConfig: Configuration = {
     },
     // Put your normal webpack config below here
     module: {
-        rules,
+        rules: getWebpackRules("main"),
     },
     resolve: {
         extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json", ".node"],
