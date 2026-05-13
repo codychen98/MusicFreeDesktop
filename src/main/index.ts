@@ -6,6 +6,7 @@ import { setupGlobalContext } from "@/shared/global-context/main";
 import { setupI18n } from "@/shared/i18n/main";
 import { handleDeepLink } from "./deep-link";
 import logger from "@shared/logger/main";
+import { setupDiagnostics } from "./diagnostics-setup";
 import { PlayerState } from "@/common/constant";
 import ThumbBarUtil from "@/common/thumb-bar-util";
 import windowManager from "@main/window-manager";
@@ -21,6 +22,8 @@ import utils from "@shared/utils/main";
 import messageBus from "@shared/message-bus/main";
 import shortCut from "@shared/short-cut/main";
 import voidCallback from "@/common/void-callback";
+
+setupDiagnostics();
 
 // portable
 if (process.platform === "win32") {
@@ -94,6 +97,11 @@ app.on("will-quit", () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 app.whenReady().then(async () => {
+    logger.logInfo("[diag][main] app.whenReady start", {
+        isPackaged: app.isPackaged,
+        version: app.getVersion(),
+        userData: app.getPath("userData"),
+    });
     logger.logPerf("App Ready");
     setupGlobalContext();
     await AppConfig.setup(windowManager);

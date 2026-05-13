@@ -70,6 +70,8 @@ bootstrap()
         );
     })
     .catch((error: unknown) => {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.logError("[diag][renderer] bootstrap() rejected", err);
         root.render(<BootstrapFailure error={error} />);
     });
 

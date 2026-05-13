@@ -10,6 +10,9 @@ import { getGlobalContext } from "../global-context/preload";
 import { contextBridge } from "electron";
 import CryptoJS from "crypto-js";
 import debounce from "@/common/debounce";
+import { sendDiagnostics } from "../../preload/diagnostics-send";
+
+sendDiagnostics({ scope: "themepack/preload:module-loaded" });
 
 const themeNodeId = "themepack-node";
 const themePathKey = "themepack-path";
@@ -291,5 +294,7 @@ export const mod = {
     installRemoteThemePack,
     replaceAlias,
 };
+
+sendDiagnostics({ scope: "themepack/preload:before-contextBridge" });
 
 contextBridge.exposeInMainWorld("@shared/themepack", mod);

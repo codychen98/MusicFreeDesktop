@@ -17,20 +17,29 @@ import throttle from "lodash.throttle";
 import { IAppState } from "@shared/message-bus/type";
 import MusicDetail from "@renderer/components/MusicDetail";
 import shortCut from "@shared/short-cut/renderer";
+import logger from "@shared/logger/renderer";
 
 
 setAutoFreeze(false);
 
 export default async function () {
+    const d = (phase: string) => {
+        logger.logInfo(`[diag][renderer-bootstrap] ${phase}`);
+    };
+    d("start");
+    d("await AppConfig.setup + PluginManager.setup");
     await Promise.all([
         AppConfig.setup(),
         PluginManager.setup(),
     ]);
+    d("await MusicSheet.setupMusicSheets + trackPlayer.setup");
     await Promise.all([
         MusicSheet.frontend.setupMusicSheets(),
         trackPlayer.setup(),
     ]);
+    d("await setupI18n");
     await setupI18n();
+    d("sync steps (shortCut, handlers, localMusic, downloader, …)");
     shortCut.setup();
     dropHandler();
     clearDefaultBehavior();
@@ -52,6 +61,7 @@ export default async function () {
         }
     }
 
+    d("complete");
 }
 
 function dropHandler() {
