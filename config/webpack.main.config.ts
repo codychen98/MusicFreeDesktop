@@ -17,6 +17,12 @@ export const mainConfig: Configuration = {
   },
   resolve: {
     extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json", '.node'],
+    /**
+     * Prefer Node entry points for packages that expose `"node"` vs `"default"` exports
+     * (e.g. music-metadata, file-type, strtok3). Without `node`, webpack can resolve the
+     * browser build and crash the main process with `ReferenceError: File is not defined`.
+     */
+    conditionNames: ["node", "electron", "..."],
     alias: {
       "@": path.join(__dirname, "../src"),
       "@main": path.join(__dirname, "../src/main"),

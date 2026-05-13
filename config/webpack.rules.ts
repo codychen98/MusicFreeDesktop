@@ -10,6 +10,8 @@ export const rules: Required<ModuleOptions>['rules'] = [
   },
   {
     test: /[/\\]node_modules[/\\].+\.(m?js|node)$/,
+    exclude:
+      /[/\\]node_modules[/\\](?:music-metadata|strtok3|file-type|peek-readable|token-types|@tokenizer[/\\]token)[/\\]/,
     parser: { amd: false },
     use: {
       loader: '@vercel/webpack-asset-relocator-loader',
