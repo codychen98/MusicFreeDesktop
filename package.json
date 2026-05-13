@@ -31,6 +31,7 @@
     "@babel/core": "^7.22.1",
     "@babel/preset-react": "^7.22.0",
     "@electron-forge/cli": "6.4.1",
+    "@electron-forge/shared-types": "6.4.1",
     "@electron-forge/maker-deb": "6.4.1",
     "@electron-forge/maker-dmg": "6.4.1",
     "@electron-forge/maker-rpm": "6.4.1",
