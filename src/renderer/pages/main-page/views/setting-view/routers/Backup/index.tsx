@@ -3,8 +3,11 @@ import MusicSheet from "@/renderer/core/music-sheet";
 import { toast } from "react-toastify";
 import RadioGroupSettingItem from "../../components/RadioGroupSettingItem";
 import InputSettingItem from "../../components/InputSettingItem";
-import { AuthType, createClient } from "webdav";
 import BackupResume from "@/renderer/core/backup-resume";
+import {
+    backupMusicSheetsToWebdavWithToast,
+    restoreMusicSheetsFromWebdavWithToast,
+} from "@/renderer/core/webdav-backup";
 import { useTranslation } from "react-i18next";
 import AppConfig from "@shared/app-config/renderer";
 import { dialogUtil, fsUtil } from "@shared/utils/renderer";
@@ -15,96 +18,12 @@ export default function Backup() {
     const { t } = useTranslation();
 
 
-    async function onBackupClick() {
-        const url = AppConfig.getConfig("backup.webdav.url");
-        const username = AppConfig.getConfig("backup.webdav.username");
-        const password = AppConfig.getConfig("backup.webdav.password");
-
-        try {
-            if (
-                url && username && password
-            ) {
-                const client = createClient(url, {
-                    authType: AuthType.Password,
-                    username: username,
-                    password: password,
-                });
-                const sheetDetails =
-                    await MusicSheet.frontend.exportAllSheetDetails();
-                const backUp = JSON.stringify(
-                    {
-                        musicSheets: sheetDetails,
-                    },
-                    undefined,
-                    0,
-                );
-                if (!(await client.exists("/MusicFree"))) {
-                    await client.createDirectory("/MusicFree");
-                }
-                // 临时文件
-                await client.putFileContents(
-                    "/MusicFree/MusicFreeBackup.json",
-                    backUp,
-                    {
-                        overwrite: true,
-                    },
-                );
-                toast.success(t("settings.backup.backup_success"));
-            } else {
-                toast.error(t("settings.backup.webdav_data_not_complete"));
-            }
-        } catch (e) {
-            toast.error(
-                t("settings.backup.backup_fail", {
-                    reason: e?.message,
-                }),
-            );
-        }
+    function onBackupClick() {
+        return backupMusicSheetsToWebdavWithToast(t);
     }
 
-    async function onResumeClick() {
-        const url = AppConfig.getConfig("backup.webdav.url");
-        const username = AppConfig.getConfig("backup.webdav.username");
-        const password = AppConfig.getConfig("backup.webdav.password");
-        try {
-            if (
-                url &&
-                username &&
-                password
-            ) {
-                const client = createClient(url, {
-                    authType: AuthType.Password,
-                    username: username,
-                    password: password,
-                });
-
-                if (!(await client.exists("/MusicFree/MusicFreeBackup.json"))) {
-                    throw new Error(
-                        t("settings.backup.webdav_backup_file_not_exist"),
-                    );
-                }
-                const resumeData = await client.getFileContents(
-                    "/MusicFree/MusicFreeBackup.json",
-                    {
-                        format: "text",
-                    },
-                );
-                await BackupResume.resume(
-                    resumeData,
-                    AppConfig.getConfig("backup.resumeBehavior") === "overwrite",
-                );
-                toast.success(t("settings.backup.resume_success"));
-            } else {
-                toast.error(t("settings.backup.webdav_data_not_complete"));
-            }
-        } catch (e) {
-            toast.error(
-                t("settings.backup.resume_fail", {
-                    reason: e?.message,
-                }),
-            );
-        }
-
+    function onResumeClick() {
+        return restoreMusicSheetsFromWebdavWithToast(t);
     }
 
     return (
