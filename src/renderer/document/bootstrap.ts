@@ -169,6 +169,20 @@ function setupCommandAndEvents() {
         }
     });
 
+    messageBus.onCommand("Favorite", async (item) => {
+        const realItem = item || trackPlayer.currentMusic;
+        if (realItem && !MusicSheet.frontend.isFavoriteMusic(realItem)) {
+            await MusicSheet.frontend.addMusicToFavorite(realItem);
+        }
+    });
+
+    messageBus.onCommand("Unfavorite", async (item) => {
+        const realItem = item || trackPlayer.currentMusic;
+        if (realItem && MusicSheet.frontend.isFavoriteMusic(realItem)) {
+            await MusicSheet.frontend.removeMusicFromFavorite(realItem);
+        }
+    });
+
     messageBus.onCommand("ToggleDesktopLyric", () => {
         const enableDesktopLyric = AppConfig.getConfig("lyric.enableDesktopLyric");
         appWindowUtil.setLyricWindow(!enableDesktopLyric);

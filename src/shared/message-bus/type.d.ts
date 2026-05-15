@@ -31,6 +31,10 @@ export interface ICommand {
   VolumeDown: number;
   /** 切换喜爱状态 */
   ToggleFavorite: IMusic.IMusicItem | null;
+  /** 收藏（已收藏则无操作） */
+  Favorite: IMusic.IMusicItem | null;
+  /** 取消收藏（未收藏则无操作） */
+  Unfavorite: IMusic.IMusicItem | null;
   /** 切换桌面歌词状态 */
   ToggleDesktopLyric: void;
   /** 同步音乐状态 */

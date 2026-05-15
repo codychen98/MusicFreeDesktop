@@ -4,7 +4,7 @@ import path from "path";
 import { setAutoFreeze } from "immer";
 import { setupGlobalContext } from "@/shared/global-context/main";
 import { setupI18n } from "@/shared/i18n/main";
-import { handleDeepLink } from "./deep-link";
+import { handleDeepLink, isPlayerDeepLink } from "./deep-link";
 import logger from "@shared/logger/main";
 import { PlayerState } from "@/common/constant";
 import ThumbBarUtil from "@/common/thumb-bar-util";
@@ -74,12 +74,13 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on("second-instance", (_evt, commandLine) => {
-    if (windowManager.mainWindow) {
+    const url = commandLine.find((arg) => arg.startsWith("musicfree://")) ?? commandLine.at(-1);
+    if (windowManager.mainWindow && !isPlayerDeepLink(url)) {
         windowManager.showMainWindow();
     }
 
     if (process.platform !== "darwin") {
-        handleDeepLink(commandLine.pop());
+        handleDeepLink(url);
     }
 });
 
@@ -157,6 +158,11 @@ app.whenReady().then(async () => {
     });
 
     messageBus.setup(windowManager);
+
+    const launchUrl = process.argv.find((arg) => arg.startsWith("musicfree://"));
+    if (launchUrl) {
+        handleDeepLink(launchUrl);
+    }
 
     windowManager.showMainWindow();
 

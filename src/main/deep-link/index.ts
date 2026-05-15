@@ -3,6 +3,26 @@ import { parseLocalMusicItem, safeStat } from "@/common/file-util";
 import PluginManager from "@shared/plugin-manager/main";
 import voidCallback from "@/common/void-callback";
 import messageBus from "@shared/message-bus/main";
+import type { ICommand } from "@shared/message-bus/type";
+
+const playerActionCommands: Record<string, keyof ICommand> = {
+    skipnext: "SkipToNext",
+    skipprev: "SkipToPrevious",
+    toggleplay: "TogglePlayerState",
+    favorite: "Favorite",
+    unfavorite: "Unfavorite",
+    favoritetoggle: "ToggleFavorite",
+    togglelyric: "ToggleDesktopLyric",
+};
+
+export function isPlayerDeepLink(url: string) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.protocol === "musicfree:" && urlObj.hostname === "player";
+    } catch {
+        return false;
+    }
+}
 
 export function handleDeepLink(url: string) {
     if (!url) {
@@ -31,6 +51,12 @@ async function handleMusicFreeScheme(url: URL) {
             );
         } catch {
             // pass
+        }
+    } else if (hostname === "player") {
+        const action = url.pathname.replace(/^\//, "").toLowerCase();
+        const command = playerActionCommands[action];
+        if (command) {
+            messageBus.sendCommand(command);
         }
     }
 }
