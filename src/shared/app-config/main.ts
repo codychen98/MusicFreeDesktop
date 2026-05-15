@@ -210,18 +210,22 @@ class AppConfig {
 
     private _setConfig(data: IAppConfig, from: "main" | "renderer") {
         try {
+            const patch: IAppConfig = { ...data };
+            if (patch["backup.webdav.autoSync"] === false) {
+                patch["backup.webdav.pendingPush"] = false;
+            }
             // 1. Merge old one
-            this.config = { ..._defaultAppConfig, ...this.config, ...data };
+            this.config = { ..._defaultAppConfig, ...this.config, ...patch };
             // 2. Save to file
             const rawConfig = JSON.stringify(this.config, undefined, 4);
             originalFs.writeFileSync(this.configPath, rawConfig, "utf-8");
             // 3. Notify to all windows
             this.windowManager.getAllWindows().forEach((window) => {
-                window.webContents.send("@shared/app-config/update-app-config", data);
+                window.webContents.send("@shared/app-config/update-app-config", patch);
             });
 
             this.onAppConfigUpdatedCallbacks.forEach((callback) => {
-                callback(data, this.config, from);
+                callback(patch, this.config, from);
             });
 
         } catch (e) {

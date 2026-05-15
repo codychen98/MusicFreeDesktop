@@ -9,10 +9,6 @@ import { localPluginName } from "@/common/constant";
 import { showContextMenu } from "@/renderer/components/ContextMenu";
 import { useTranslation } from "react-i18next";
 import { useSupportedPlugin } from "@shared/plugin-manager/renderer";
-import {
-    backupMusicSheetsToWebdavWithToast,
-    restoreMusicSheetsFromWebdavWithToast,
-} from "@/renderer/core/webdav-backup";
 
 
 export default function MySheets() {
@@ -55,28 +51,6 @@ export default function MySheets() {
                         }}
                     >
                         <SvgAsset iconName="plus"></SvgAsset>
-                    </div>
-                    <div
-                        role="button"
-                        className="option-btn"
-                        title={t("settings.backup.backup_music_sheet")}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            void backupMusicSheetsToWebdavWithToast(t);
-                        }}
-                    >
-                        <SvgAsset iconName="arrow-up-tray"></SvgAsset>
-                    </div>
-                    <div
-                        role="button"
-                        className="option-btn"
-                        title={t("settings.backup.resume_music_sheet")}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            void restoreMusicSheetsFromWebdavWithToast(t);
-                        }}
-                    >
-                        <SvgAsset iconName="array-download-tray"></SvgAsset>
                     </div>
                 </Disclosure.Button>
                 <Disclosure.Panel>

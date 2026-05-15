@@ -89,6 +89,12 @@ interface _IAppConfig {
     "backup.webdav.username": string;
     /** 密码 */
     "backup.webdav.password": string;
+    /** WebDAV auto-sync (default off for all users, including existing setups) */
+    "backup.webdav.autoSync": boolean;
+    /** Local snapshot not yet uploaded to WebDAV */
+    "backup.webdav.pendingPush": boolean;
+    /** Millis of last successful WebDAV upload (diagnostics / future freshness) */
+    "backup.webdav.lastSuccessfulPushAt": number;
 
     /** 本地音乐配置 */
     "localMusic.watchDir": string[];
@@ -103,6 +109,9 @@ interface _IAppConfig {
     "private.pluginMeta": Record<string, IPlugin.IPluginMeta>;
 
     "private.minimode": boolean;
+
+    /** Stable id for backup `syncMeta.sourceDeviceId` (one per install) */
+    "private.backupSourceDeviceId": string;
 
 }
 

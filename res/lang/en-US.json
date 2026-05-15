@@ -357,7 +357,12 @@
       "username": "Username",
       "password": "Password",
       "webdav_data_not_complete": "URL, username, and password cannot be empty",
-      "webdav_backup_file_not_exist": "Backup file does not exist"
+      "webdav_backup_file_not_exist": "Backup file does not exist",
+      "empty_remote_dialog_title": "Remote playlist backup is empty",
+      "empty_remote_dialog_body": "The WebDAV backup has no tracks. Continuing will replace your local playlists with that empty backup. To upload your current playlists first, go to Settings → Backup and use Backup to WebDAV.",
+      "webdav_auto_sync": "Auto-sync playlists with WebDAV",
+      "webdav_auto_sync_credentials_hint": "Enter WebDAV URL, username, and password to enable auto-sync.",
+      "webdav_auto_sync_requires_credentials": "Complete WebDAV credentials before enabling auto-sync."
     },
     "about": {
       "current_version": "Current Version: {{version}}",

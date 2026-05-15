@@ -335,7 +335,12 @@
       "username": "账号",
       "password": "密码",
       "webdav_data_not_complete": "URL、账号、密码不可为空",
-      "webdav_backup_file_not_exist": "备份文件不存在"
+      "webdav_backup_file_not_exist": "备份文件不存在",
+      "empty_remote_dialog_title": "云端歌单备份为空",
+      "empty_remote_dialog_body": "WebDAV 上的备份没有任何歌曲。继续将把本地歌单替换为与该备份一致（即清空本地歌单）。若要先上传当前歌单，请前往设置 → 备份，使用「备份歌单」上传到 WebDAV。",
+      "webdav_auto_sync": "自动同步歌单到 WebDAV",
+      "webdav_auto_sync_credentials_hint": "填写 WebDAV 地址、账号和密码后可开启自动同步。",
+      "webdav_auto_sync_requires_credentials": "请先填写完整的 WebDAV 凭据再开启自动同步。"
     },
     "about": {
       "current_version": "当前版本: {{version}}",

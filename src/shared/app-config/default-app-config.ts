@@ -27,6 +27,8 @@ const _defaultAppConfig: IAppConfig =  {
     "download.concurrency": 5,
     "normal.musicListColumnsShown": [],
     "backup.resumeBehavior": "append",
+    "backup.webdav.autoSync": false,
+    "backup.webdav.pendingPush": false,
     "normal.language": "zh-CN",
 };
 

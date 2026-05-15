@@ -17,6 +17,7 @@ import throttle from "lodash.throttle";
 import { IAppState } from "@shared/message-bus/type";
 import MusicDetail from "@renderer/components/MusicDetail";
 import shortCut from "@shared/short-cut/renderer";
+import { setupWebdavAutoSync } from "@/renderer/core/webdav-sync";
 
 
 setAutoFreeze(false);
@@ -26,11 +27,12 @@ export default async function () {
         AppConfig.setup(),
         PluginManager.setup(),
     ]);
+    setupWebdavAutoSync();
     await Promise.all([
         MusicSheet.frontend.setupMusicSheets(),
         trackPlayer.setup(),
+        setupI18n(),
     ]);
-    await setupI18n();
     shortCut.setup();
     dropHandler();
     clearDefaultBehavior();

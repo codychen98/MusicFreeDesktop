@@ -2,6 +2,7 @@ import Store from "@/common/store";
 import AppConfig from "@shared/app-config/renderer";
 import useAppConfig from "@/hooks/useAppConfig";
 import { useMemo } from "react";
+import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
 
 interface IPluginDelegateLike {
     platform?: string;
@@ -109,8 +110,13 @@ async function setup() {
     await mod.reloadPlugins();
 }
 
+function getInstalledPluginDelegates() {
+    return delegatePluginsStore.getValue();
+}
+
 const PluginManager = {
     setup,
+    getInstalledPluginDelegates,
     getSortedSupportedPlugin,
     getSupportedPlugin,
     getSearchablePlugins,
@@ -121,9 +127,18 @@ const PluginManager = {
     getPluginPrimaryKey,
     callPluginDelegateMethod: mod.callPluginMethod,
     updateAllPlugins: mod.updateAllPlugins,
-    uninstallPlugin: mod.uninstallPlugin,
-    installPluginFromRemote: mod.installPluginFromRemote,
-    installPluginFromLocal: mod.installPluginFromLocal,
+    uninstallPlugin: async (hash: string) => {
+        await mod.uninstallPlugin(hash);
+        markWebdavLocalMutation();
+    },
+    installPluginFromRemote: async (url: string) => {
+        await mod.installPluginFromRemote(url);
+        markWebdavLocalMutation();
+    },
+    installPluginFromLocal: async (rawCode: string) => {
+        await mod.installPluginFromLocal(rawCode);
+        markWebdavLocalMutation();
+    },
 };
 
 export default PluginManager;

@@ -1,15 +1,33 @@
 import MusicSheet from "../music-sheet";
+import { runWithoutWebdavSyncNotify } from "@/renderer/core/webdav-sync/upload";
+import { collectBackupPlugins, resumeBackupPlugins } from "./plugins";
+import { withWebdavUploadSyncMeta } from "./sync-meta";
+import {
+    parseBackupPayload,
+    type IBackupPayload,
+} from "./types";
 
-/**
- * 恢复
- * @param data 数据
- * @param overwrite 是否覆写歌单
- */
-async function resume(data: string | Record<string, any>, overwrite?: boolean) {
-    const dataObj = typeof data === "string" ? JSON.parse(data) : data;
+export type {
+    IBackupPayload,
+    IBackupPluginEntry,
+    IBackupSyncMeta,
+} from "./types";
 
+export async function exportBackupPayload(): Promise<IBackupPayload> {
+    const musicSheets = await MusicSheet.frontend.exportAllSheetDetails();
+    const plugins = collectBackupPlugins();
+    return { musicSheets, plugins };
+}
+
+export function serializeBackupPayload(payload: IBackupPayload) {
+    return JSON.stringify(payload, undefined, 0);
+}
+
+async function resumeMusicSheets(
+    allSheets: IMusic.IMusicSheetItem[],
+    overwrite?: boolean,
+) {
     const currentSheets = MusicSheet.frontend.getAllSheets();
-    const allSheets: IMusic.IMusicSheetItem[] = dataObj.musicSheets;
 
     let importedDefaultSheet;
     for (const sheet of allSheets) {
@@ -35,7 +53,23 @@ async function resume(data: string | Record<string, any>, overwrite?: boolean) {
     }
 }
 
+/**
+ * Restore plugins first, then playlists (matches Android Backup.resume).
+ */
+async function resume(data: string | Record<string, unknown>, overwrite?: boolean) {
+    return runWithoutWebdavSyncNotify(async () => {
+        const { musicSheets, plugins } = parseBackupPayload(data);
+
+        await resumeBackupPlugins(plugins);
+        await resumeMusicSheets(musicSheets, overwrite);
+    });
+}
+
 const BackupResume = {
     resume,
+    exportBackupPayload,
+    serializeBackupPayload,
+    withWebdavUploadSyncMeta,
 };
+
 export default BackupResume;

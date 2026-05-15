@@ -11,4 +11,10 @@
     grid-template-columns: 33% 33%;
     gap: 18px;
   }
+
+  & .webdav-auto-sync-hint {
+    grid-column: 1 / -1;
+    opacity: 0.75;
+    font-size: 0.9em;
+  }
 }

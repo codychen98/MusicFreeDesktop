@@ -1,8 +1,8 @@
 import "./index.scss";
-import MusicSheet from "@/renderer/core/music-sheet";
 import { toast } from "react-toastify";
 import RadioGroupSettingItem from "../../components/RadioGroupSettingItem";
 import InputSettingItem from "../../components/InputSettingItem";
+import CheckBoxSettingItem from "../../components/CheckBoxSettingItem";
 import BackupResume from "@/renderer/core/backup-resume";
 import {
     backupMusicSheetsToWebdavWithToast,
@@ -10,12 +10,19 @@ import {
 } from "@/renderer/core/webdav-backup";
 import { useTranslation } from "react-i18next";
 import AppConfig from "@shared/app-config/renderer";
+import useAppConfig from "@/hooks/useAppConfig";
 import { dialogUtil, fsUtil } from "@shared/utils/renderer";
 
 
 
 export default function Backup() {
     const { t } = useTranslation();
+    const webdavUrl = useAppConfig("backup.webdav.url");
+    const webdavUsername = useAppConfig("backup.webdav.username");
+    const webdavPassword = useAppConfig("backup.webdav.password");
+    const webdavCredentialsComplete = Boolean(
+        webdavUrl?.trim() && webdavUsername?.trim() && webdavPassword?.trim(),
+    );
 
 
     function onBackupClick() {
@@ -55,11 +62,8 @@ export default function Backup() {
                             title: t("settings.backup.backup_to"),
                         });
                         if (!result.canceled && result.filePath) {
-                            const sheetDetails =
-                                await MusicSheet.frontend.exportAllSheetDetails();
-                            const backUp = JSON.stringify({
-                                musicSheets: sheetDetails,
-                            });
+                            const payload = await BackupResume.exportBackupPayload();
+                            const backUp = BackupResume.serializeBackupPayload(payload);
                             await fsUtil.writeFile(result.filePath, backUp, "utf-8");
                             toast.success(t("settings.backup.backup_success"));
                         }
@@ -130,6 +134,23 @@ export default function Backup() {
                     trim
                     keyPath="backup.webdav.password"
                 ></InputSettingItem>
+                <CheckBoxSettingItem
+                    keyPath="backup.webdav.autoSync"
+                    label={t("settings.backup.webdav_auto_sync")}
+                    onChange={(event, checked) => {
+                        if (checked && !webdavCredentialsComplete) {
+                            event.preventDefault();
+                            toast.error(
+                                t("settings.backup.webdav_auto_sync_requires_credentials"),
+                            );
+                        }
+                    }}
+                ></CheckBoxSettingItem>
+                {!webdavCredentialsComplete ? (
+                    <div className="label-container webdav-auto-sync-hint">
+                        {t("settings.backup.webdav_auto_sync_credentials_hint")}
+                    </div>
+                ) : null}
             </div>
             <div className="setting-row backup-row">
                 <div

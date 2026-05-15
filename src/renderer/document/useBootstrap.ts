@@ -5,6 +5,9 @@ import Themepack from "@/shared/themepack/renderer";
 import logger from "@shared/logger/renderer";
 import AppConfig from "@shared/app-config/renderer";
 import messageBus from "@shared/message-bus/renderer/main";
+import { runWebdavBootstrapSync } from "@/renderer/core/webdav-sync";
+
+let webdavBootstrapSyncStarted = false;
 
 export default function useBootstrap() {
     const navigate = useNavigate();
@@ -22,5 +25,10 @@ export default function useBootstrap() {
             checkUpdate();
         }
         logger.logPerf("Bundle First Screen");
+
+        if (!webdavBootstrapSyncStarted) {
+            webdavBootstrapSyncStarted = true;
+            void runWebdavBootstrapSync();
+        }
     }, []);
 }

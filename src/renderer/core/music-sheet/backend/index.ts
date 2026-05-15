@@ -11,6 +11,7 @@ import { produce } from "immer";
 import defaultSheet from "../common/default-sheet";
 import { getMediaPrimaryKey, isSameMedia } from "@/common/media-util";
 import { getUserPreferenceIDB, setUserPreferenceIDB } from "@/renderer/utils/user-perference";
+import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
 
 /******************** 内存缓存 ***********************/
 // 默认歌单，快速判定是否在列表中
@@ -117,6 +118,7 @@ export async function addSheet(sheetName: string) {
             },
         );
         musicSheets = [...musicSheets, newSheet];
+        markWebdavLocalMutation();
         return newSheet;
     } catch {
         throw new Error("新建失败");
@@ -156,6 +158,7 @@ export async function updateSheet(
                 };
             }
         });
+        markWebdavLocalMutation();
     } catch (e) {
         // 更新歌单信息失败
         console.log(e);
@@ -188,6 +191,7 @@ export async function removeSheet(sheetId: string) {
             },
         );
         musicSheets = musicSheets.filter((it) => it.id !== sheetId);
+        markWebdavLocalMutation();
         return musicSheets;
     } catch (e) {
         console.log(e);
@@ -214,6 +218,7 @@ export async function clearSheet(sheetId: string) {
                 targetSheet.musicList = [];
             },
         );
+        markWebdavLocalMutation();
         return [...musicSheets];
     } catch (e) {
         console.log(e);
@@ -327,6 +332,10 @@ export async function addMusicToSheet(
             });
         }
 
+        if (validMusicItems.length > 0) {
+            markWebdavLocalMutation();
+        }
+
         return musicSheets;
     } catch {
         console.log("error!!");
@@ -423,6 +432,10 @@ export async function removeMusicFromSheet(
             toBeRemovedMusic.forEach((mi) => {
                 favoriteMusicListIds.delete(getMediaPrimaryKey(mi));
             });
+        }
+
+        if (toBeRemovedMusic.length > 0) {
+            markWebdavLocalMutation();
         }
     } catch (e) {
         console.log(e);

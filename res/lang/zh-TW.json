@@ -357,7 +357,12 @@
       "username": "用戶名",
       "password": "密碼",
       "webdav_data_not_complete": "URL、用戶名和密碼不能為空",
-      "webdav_backup_file_not_exist": "備份文件不存在"
+      "webdav_backup_file_not_exist": "備份文件不存在",
+      "empty_remote_dialog_title": "雲端歌單備份為空",
+      "empty_remote_dialog_body": "WebDAV 上的備份沒有任何歌曲。繼續將以該備份覆寫本地歌單（等同清空本地歌單）。若要先上傳目前歌單，請前往設定 → 備份，使用「備份歌單」上傳至 WebDAV。",
+      "webdav_auto_sync": "自動同步歌單至 WebDAV",
+      "webdav_auto_sync_credentials_hint": "請填寫 WebDAV 網址、使用者名稱和密碼後再啟用自動同步。",
+      "webdav_auto_sync_requires_credentials": "請先填寫完整的 WebDAV 憑證再啟用自動同步。"
     },
     "about": {
       "current_version": "當前版本：{{version}}",
