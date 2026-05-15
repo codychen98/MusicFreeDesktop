@@ -65,7 +65,7 @@ export default function MySheets() {
                             void backupMusicSheetsToWebdavWithToast(t);
                         }}
                     >
-                        <SvgAsset iconName="cloud-arrow-up"></SvgAsset>
+                        <SvgAsset iconName="arrow-up-tray"></SvgAsset>
                     </div>
                     <div
                         role="button"
@@ -76,7 +76,7 @@ export default function MySheets() {
                             void restoreMusicSheetsFromWebdavWithToast(t);
                         }}
                     >
-                        <SvgAsset iconName="cloud-arrow-down"></SvgAsset>
+                        <SvgAsset iconName="array-download-tray"></SvgAsset>
                     </div>
                 </Disclosure.Button>
                 <Disclosure.Panel>

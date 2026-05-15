@@ -229,7 +229,7 @@ class WindowManager implements IWindowManager {
         height: 1200,
     };
 
-    private getLyricWindowMaxSize(point?: ICommon.IPoint): ICommon.ISize {
+    private static getLyricWindowMaxSize(point?: ICommon.IPoint): ICommon.ISize {
         const display = screen.getDisplayNearestPoint(
             point ?? screen.getPrimaryDisplay().bounds,
         );
@@ -264,7 +264,7 @@ class WindowManager implements IWindowManager {
     private createLyricWindow() {
         const initPosition = AppConfig.getConfig("private.lyricWindowPosition");
         const initSize = AppConfig.getConfig("private.lyricWindowSize");
-        const maxSize = this.getLyricWindowMaxSize(initPosition ?? undefined);
+        const maxSize = WindowManager.getLyricWindowMaxSize(initPosition ?? undefined);
         WindowManager.lyricWindowMaxSize = maxSize;
 
         let {
@@ -323,9 +323,10 @@ class WindowManager implements IWindowManager {
                 AppConfig.setConfig({
                     "private.lyricWindowPosition": point,
                 });
-                const currentDisplayBounds =
-                    screen.getDisplayNearestPoint(point).bounds;
-                const nextMaxSize = this.getLyricWindowMaxSize(point);
+                if (!point) {
+                    return;
+                }
+                const nextMaxSize = WindowManager.getLyricWindowMaxSize(point);
                 if (
                     nextMaxSize.width !== WindowManager.lyricWindowMaxSize.width ||
                     nextMaxSize.height !== WindowManager.lyricWindowMaxSize.height
