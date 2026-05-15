@@ -221,8 +221,13 @@ class WindowManager implements IWindowManager {
 
     /**************************** Lyric Window ***************************/
     private static lyricWindowMinSize: ICommon.ISize = {
-        width: 920,
-        height: 92, // 60 + 16 * 2
+        width: 320,
+        height: 120,
+    };
+
+    private static lyricWindowDefaultSize: ICommon.ISize = {
+        width: 450,
+        height: 300,
     };
     private static lyricWindowMaxSize: ICommon.ISize = {
         width: 1920,
@@ -258,7 +263,10 @@ class WindowManager implements IWindowManager {
 
     private evaluateWindowHeight() {
         const fontSize = AppConfig.getConfig("lyric.fontSize") || 54;
-        return 60 + fontSize * 5;
+        return Math.max(
+            WindowManager.lyricWindowDefaultSize.height,
+            60 + fontSize * 8,
+        );
     }
 
     private createLyricWindow() {
@@ -271,8 +279,8 @@ class WindowManager implements IWindowManager {
             width,
             height,
         } = this.formatLyricWindowSize(
-            initSize?.width ?? WindowManager.lyricWindowMinSize.width,
-            this.evaluateWindowHeight(),
+            initSize?.width ?? WindowManager.lyricWindowDefaultSize.width,
+            initSize?.height ?? this.evaluateWindowHeight(),
             maxSize,
         );
 

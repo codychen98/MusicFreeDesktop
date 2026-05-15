@@ -21,48 +21,81 @@
     display: flex;
     align-items: flex-end;
     justify-content: center;
+    flex-shrink: 0;
   }
-
 
   & .content-container {
     width: 100%;
     height: calc(100% - 60px);
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  & .lyric-scroll-view {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    text-align: center;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  & .lyric-scroll-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+
+  & .lyric-scroll-spacer {
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  & .lyric-text-row {
+    color: white;
+    font-size: inherit;
+    line-height: 1.2;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    opacity: 0.55;
+    margin: var(--lyric-line-gap, 8px) 0;
+    transition: opacity 200ms ease, font-size 300ms ease;
+    cursor: grab;
+
+    &[data-highlight='true'] {
+      opacity: 1;
+      font-size: 1.12em;
+    }
+  }
+
+  & .lyric-compact-view {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-
-    & .lyric-text-stack {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      row-gap: 0.15em;
-      width: 100%;
-      max-height: 100%;
-      text-align: center;
-
-      & .lyric-text-row {
-        position: static;
-        white-space: nowrap;
-        opacity: 0.55;
-        line-height: 1.15;
-
-        &[data-highlight='true'] {
-          opacity: 1;
-        }
-      }
-    }
+    position: relative;
 
     & .lyric-text-row {
-      -webkit-text-stroke: 1px #b48f1d;
-      color: white;
-      font-size: 48px;
       white-space: nowrap;
       position: absolute;
+      margin: 0;
+      cursor: default;
     }
   }
-
 
   & .operation-container {
     height: 28px;

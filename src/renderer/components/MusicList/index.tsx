@@ -569,7 +569,7 @@ function _MusicList(props: IMusicListProps) {
                                 }}
                                 onDoubleClick={() => {
                                     const config =
-                                    doubleClickBehavior ??
+                                        doubleClickBehavior ??
                                     AppConfig.getConfig("playMusic.clickMusicList");
                                     if (config === "replace") {
                                         trackPlayer.playMusicWithReplaceQueue(
