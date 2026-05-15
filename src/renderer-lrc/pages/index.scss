@@ -30,6 +30,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+
+    & .lyric-text-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      row-gap: 0.15em;
+      width: 100%;
+      max-height: 100%;
+      text-align: center;
+
+      & .lyric-text-row {
+        position: static;
+        white-space: nowrap;
+        opacity: 0.55;
+        line-height: 1.15;
+
+        &[data-highlight='true'] {
+          opacity: 1;
+        }
+      }
+    }
 
     & .lyric-text-row {
       -webkit-text-stroke: 1px #b48f1d;
