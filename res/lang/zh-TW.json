@@ -157,6 +157,8 @@
     "my_sheets": "我的歌單",
     "create_local_sheet": "創建歌單",
     "starred_sheets": "我的收藏",
+    "sheet_song_count": "{{count}}首",
+    "drag_to_reorder_playlists": "按住拖曳可調整歌單順序",
 
     "delete_sheet": "刪除歌單",
     "rename_sheet": "重歌單",

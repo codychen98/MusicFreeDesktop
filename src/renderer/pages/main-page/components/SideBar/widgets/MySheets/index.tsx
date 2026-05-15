@@ -9,6 +9,7 @@ import { localPluginName } from "@/common/constant";
 import { showContextMenu } from "@/renderer/components/ContextMenu";
 import { useTranslation } from "react-i18next";
 import { useSupportedPlugin } from "@shared/plugin-manager/renderer";
+import { useCallback } from "react";
 
 
 export default function MySheets() {
@@ -21,6 +22,35 @@ export default function MySheets() {
     const { t } = useTranslation();
 
     const importablePlugins = useSupportedPlugin("importMusicSheet");
+
+    const onDropReorder = useCallback(
+        (draggedId: string, dropIndex: number) => {
+            if (draggedId === defaultSheet.id) {
+                return;
+            }
+            const ids = musicSheets.map((s) => s.id);
+            const fromIndex = ids.indexOf(draggedId);
+            if (fromIndex === -1 || dropIndex === -1) {
+                return;
+            }
+            let toIndex = dropIndex;
+            if (toIndex === 0) {
+                toIndex = 1;
+            }
+            if (fromIndex === toIndex) {
+                return;
+            }
+            const next = [...ids];
+            next.splice(fromIndex, 1);
+            let insertAt = toIndex;
+            if (fromIndex < insertAt) {
+                insertAt -= 1;
+            }
+            next.splice(insertAt, 0, draggedId);
+            void MusicSheet.frontend.reorderSheets(next);
+        },
+        [musicSheets],
+    );
 
     return (
         <div className="side-bar-container--my-sheets">
@@ -54,73 +84,105 @@ export default function MySheets() {
                     </div>
                 </Disclosure.Button>
                 <Disclosure.Panel>
-                    {musicSheets.map((item) => (
-                        <ListItem
+                    {musicSheets.map((item, sheetIndex) => (
+                        <div
                             key={item.id}
-                            iconName={
-                                item.id === defaultSheet.id ? "heart-outline" : "musical-note"
-                            }
-                            onClick={() => {
-                                if (currentSheetId !== item.id) {
-                                    navigate(`/main/musicsheet/${encodeURIComponent(localPluginName)}/${encodeURIComponent(item.id)}`);
-                                }
-                            }}
-                            onContextMenu={(e) => {
-                                if (item.id === defaultSheet.id) {
-                                    return;
-                                }
-                                showContextMenu({
-                                    x: e.clientX,
-                                    y: e.clientY,
-                                    menuItems: [
-                                        {
-                                            title: t("side_bar.rename_sheet"),
-                                            icon: "pencil-square",
-                                            show: item.id !== defaultSheet.id,
-                                            onClick() {
-                                                showModal("SimpleInputWithState", {
-                                                    placeholder: t(
-                                                        "modal.create_local_sheet_placeholder",
-                                                    ),
-                                                    maxLength: 30,
-                                                    title: t("side_bar.rename_sheet"),
-                                                    defaultValue: item.title,
-                                                    async onOk(text) {
-                                                        await MusicSheet.frontend.updateSheet(item.id, {
-                                                            title: text,
-                                                        });
-                                                        hideModal();
-                                                    },
-                                                });
-                                            },
-                                        },
-                                        {
-                                            title: t("side_bar.delete_sheet"),
-                                            icon: "trash",
-                                            show: item.id !== defaultSheet.id,
-                                            onClick() {
-                                                MusicSheet.frontend.removeSheet(item.id).then(() => {
-                                                    if (currentSheetId === item.id) {
-                                                        navigate(
-                                                            `/main/musicsheet/${encodeURIComponent(localPluginName)}/${defaultSheet.id}`,
-                                                            {
-                                                                replace: true,
-                                                            },
-                                                        );
-                                                    }
-                                                });
-                                            },
-                                        },
-                                    ],
-                                });
-                            }}
-                            selected={currentSheetId === item.id}
+                            className="side-bar--sheet-drag-row"
                             title={
                                 item.id === defaultSheet.id
-                                    ? t("media.default_favorite_sheet_name")
-                                    : item.title
+                                    ? undefined
+                                    : t("side_bar.drag_to_reorder_playlists")
                             }
-                        ></ListItem>
+                            draggable={item.id !== defaultSheet.id}
+                            onDragStart={(e) => {
+                                if (item.id === defaultSheet.id) {
+                                    e.preventDefault();
+                                    return;
+                                }
+                                e.dataTransfer.effectAllowed = "move";
+                                e.dataTransfer.setData("text/plain", item.id);
+                            }}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const id = e.dataTransfer.getData("text/plain");
+                                if (id) {
+                                    onDropReorder(id, sheetIndex);
+                                }
+                            }}
+                        >
+                            <ListItem
+                                iconName={
+                                    item.id === defaultSheet.id ? "heart-outline" : "musical-note"
+                                }
+                                onClick={() => {
+                                    if (currentSheetId !== item.id) {
+                                        navigate(`/main/musicsheet/${encodeURIComponent(localPluginName)}/${encodeURIComponent(item.id)}`);
+                                    }
+                                }}
+                                onContextMenu={(e) => {
+                                    if (item.id === defaultSheet.id) {
+                                        return;
+                                    }
+                                    showContextMenu({
+                                        x: e.clientX,
+                                        y: e.clientY,
+                                        menuItems: [
+                                            {
+                                                title: t("side_bar.rename_sheet"),
+                                                icon: "pencil-square",
+                                                show: item.id !== defaultSheet.id,
+                                                onClick() {
+                                                    showModal("SimpleInputWithState", {
+                                                        placeholder: t(
+                                                            "modal.create_local_sheet_placeholder",
+                                                        ),
+                                                        maxLength: 30,
+                                                        title: t("side_bar.rename_sheet"),
+                                                        defaultValue: item.title,
+                                                        async onOk(text) {
+                                                            await MusicSheet.frontend.updateSheet(item.id, {
+                                                                title: text,
+                                                            });
+                                                            hideModal();
+                                                        },
+                                                    });
+                                                },
+                                            },
+                                            {
+                                                title: t("side_bar.delete_sheet"),
+                                                icon: "trash",
+                                                show: item.id !== defaultSheet.id,
+                                                onClick() {
+                                                    MusicSheet.frontend.removeSheet(item.id).then(() => {
+                                                        if (currentSheetId === item.id) {
+                                                            navigate(
+                                                                `/main/musicsheet/${encodeURIComponent(localPluginName)}/${defaultSheet.id}`,
+                                                                {
+                                                                    replace: true,
+                                                                },
+                                                            );
+                                                        }
+                                                    });
+                                                },
+                                            },
+                                        ],
+                                    });
+                                }}
+                                selected={currentSheetId === item.id}
+                                title={
+                                    item.id === defaultSheet.id
+                                        ? t("media.default_favorite_sheet_name")
+                                        : item.title
+                                }
+                                subtitle={t("side_bar.sheet_song_count", {
+                                    count: item.musicList?.length ?? 0,
+                                })}
+                            ></ListItem>
+                        </div>
                     ))}
                 </Disclosure.Panel>
             </Disclosure>

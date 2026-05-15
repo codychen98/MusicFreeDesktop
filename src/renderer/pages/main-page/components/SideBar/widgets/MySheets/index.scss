@@ -53,3 +53,13 @@
     }
   }
 }
+
+.side-bar--sheet-drag-row {
+  &[draggable="true"] {
+    cursor: grab;
+  }
+
+  &[draggable="true"]:active {
+    cursor: grabbing;
+  }
+}

@@ -45,6 +45,16 @@ export async function addSheet(sheetName: string) {
 }
 
 /**
+ * Reorder local playlists (sidebar / backup order). Default sheet must stay first in {@link orderedIds}.
+ */
+export async function reorderSheets(orderedIds: string[]) {
+    try {
+        await backend.reorderMusicSheets(orderedIds);
+        musicSheetsStore.setValue(backend.getAllSheets());
+    } catch { }
+}
+
+/**
  * 更新歌单信息
  * @param sheetId 歌单ID
  * @param newData 最新的歌单信息

@@ -21,6 +21,27 @@ let musicSheets: IMusic.IDBMusicSheetItem[] = [];
 // 星标的歌单信息
 let starredMusicSheets: IMedia.IMediaBase[] = [];
 
+/**
+ * Default playlist first, then by $$sortIndex (fallback createAt).
+ */
+export function sortLocalSheetsStable(
+    sheets: IMusic.IDBMusicSheetItem[],
+): IMusic.IDBMusicSheetItem[] {
+    const defId = defaultSheet.id;
+    return [...sheets].sort((a, b) => {
+        if (a.id === defId) return -1;
+        if (b.id === defId) return 1;
+        const ai = a.$$sortIndex;
+        const bi = b.$$sortIndex;
+        if (typeof ai === "number" && typeof bi === "number" && ai !== bi) {
+            return ai - bi;
+        }
+        if (typeof ai === "number" && typeof bi !== "number") return -1;
+        if (typeof ai !== "number" && typeof bi === "number") return 1;
+        return (a.createAt ?? 0) - (b.createAt ?? 0);
+    });
+}
+
 /******************** 方法 ***********************/
 
 /**
@@ -71,6 +92,8 @@ export async function queryAllSheets() {
                 allSheets.unshift(dbDefaultSheet);
             }
         }
+
+        musicSheets = sortLocalSheetsStable(musicSheets);
 
         // 收藏歌单
         return musicSheets;
@@ -131,6 +154,50 @@ export async function addSheet(sheetName: string) {
  * @param newData 最新的歌单信息
  * @returns
  */
+/**
+ * Reorder local playlists (default stays first). Persists $$sortIndex and triggers WebDAV pending state.
+ */
+export async function reorderMusicSheets(orderedIds: string[]) {
+    const defId = defaultSheet.id;
+    const normalized = [defId, ...orderedIds.filter((id) => id !== defId)];
+    if (normalized.length !== musicSheets.length) {
+        return;
+    }
+    const idSet = new Set(normalized);
+    if (idSet.size !== normalized.length) {
+        return;
+    }
+    for (const s of musicSheets) {
+        if (!idSet.has(s.id)) {
+            return;
+        }
+    }
+
+    try {
+        await musicSheetDB.transaction(
+            "readwrite",
+            musicSheetDB.sheets,
+            async () => {
+                for (let i = 0; i < normalized.length; i++) {
+                    const id = normalized[i]!;
+                    const sortIdx = i === 0 ? -1 : i;
+                    await musicSheetDB.sheets.update(id, {
+                        $$sortIndex: sortIdx,
+                    } as Partial<IMusic.IDBMusicSheetItem>);
+                }
+            },
+        );
+        const byId = new Map(musicSheets.map((s) => [s.id, s]));
+        musicSheets = normalized.map((id, i) => ({
+            ...byId.get(id)!,
+            $$sortIndex: i === 0 ? -1 : i,
+        }));
+        markWebdavLocalMutation();
+    } catch (e) {
+        console.log(e);
+    }
+}
+
 export async function updateSheet(
     sheetId: string,
     newData: Partial<IMusic.IMusicSheetItem>,
@@ -499,15 +566,16 @@ export async function exportAllSheetDetails(): Promise<IMusic.IMusicSheetItem[]>
             if (!allSheets) {
                 return [];
             }
+            const ordered = sortLocalSheetsStable(allSheets);
             const musicLists = await Promise.all(
-                allSheets.map((sheet) =>
+                ordered.map((sheet) =>
                     musicSheetDB.musicStore.bulkGet(
                         (sheet.musicList ?? []).map((item) => [item.platform, item.id]),
                     ),
                 ),
             );
 
-            const allSheetDetails = produce(allSheets, (draft) => {
+            const allSheetDetails = produce(ordered, (draft) => {
                 draft.forEach((sheet, index) => {
                     sheet.musicList = musicLists[index];
                 });

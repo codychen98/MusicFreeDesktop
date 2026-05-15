@@ -157,6 +157,8 @@
     "my_sheets": "My Playlists",
     "create_local_sheet": "Create Playlist",
     "starred_sheets": "Favorites",
+    "sheet_song_count": "{{count}} songs",
+    "drag_to_reorder_playlists": "Drag playlists to reorder",
 
     "delete_sheet": "Delete",
     "rename_sheet": "Rename",
