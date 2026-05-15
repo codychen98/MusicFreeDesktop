@@ -225,14 +225,34 @@ class WindowManager implements IWindowManager {
         height: 92, // 60 + 16 * 2
     };
     private static lyricWindowMaxSize: ICommon.ISize = {
-        width: Infinity,
-        height: Infinity,
+        width: 1920,
+        height: 1200,
     };
 
-    private formatLyricWindowSize(width?: number, height?: number): ICommon.ISize {
+    private getLyricWindowMaxSize(point?: ICommon.IPoint): ICommon.ISize {
+        const display = screen.getDisplayNearestPoint(
+            point ?? screen.getPrimaryDisplay().bounds,
+        );
         return {
-            width: Math.min(Math.max(width ?? Infinity, WindowManager.lyricWindowMinSize.width), WindowManager.lyricWindowMaxSize.width),
-            height: Math.min(Math.max(height ?? Infinity, WindowManager.lyricWindowMinSize.height), WindowManager.lyricWindowMaxSize.height),
+            width: display.bounds.width,
+            height: display.workArea.height,
+        };
+    }
+
+    private formatLyricWindowSize(
+        width?: number,
+        height?: number,
+        maxSize: ICommon.ISize = WindowManager.lyricWindowMaxSize,
+    ): ICommon.ISize {
+        return {
+            width: Math.min(
+                Math.max(width ?? maxSize.width, WindowManager.lyricWindowMinSize.width),
+                maxSize.width,
+            ),
+            height: Math.min(
+                Math.max(height ?? maxSize.height, WindowManager.lyricWindowMinSize.height),
+                maxSize.height,
+            ),
         };
     }
 
@@ -244,11 +264,17 @@ class WindowManager implements IWindowManager {
     private createLyricWindow() {
         const initPosition = AppConfig.getConfig("private.lyricWindowPosition");
         const initSize = AppConfig.getConfig("private.lyricWindowSize");
+        const maxSize = this.getLyricWindowMaxSize(initPosition ?? undefined);
+        WindowManager.lyricWindowMaxSize = maxSize;
 
         let {
             width,
             height,
-        } = this.formatLyricWindowSize(initSize?.width ?? WindowManager.lyricWindowMinSize.width, this.evaluateWindowHeight());
+        } = this.formatLyricWindowSize(
+            initSize?.width ?? WindowManager.lyricWindowMinSize.width,
+            this.evaluateWindowHeight(),
+            maxSize,
+        );
 
         const lyricWindow = new BrowserWindow({
             height,
@@ -264,7 +290,8 @@ class WindowManager implements IWindowManager {
             },
             minWidth: WindowManager.lyricWindowMinSize.width,
             minHeight: WindowManager.lyricWindowMinSize.height,
-            maxHeight: WindowManager.lyricWindowMaxSize.height,
+            maxWidth: maxSize.width,
+            maxHeight: maxSize.height,
             resizable: true,
             frame: false,
             skipTaskbar: true,
@@ -272,9 +299,7 @@ class WindowManager implements IWindowManager {
             icon: nativeImage.createFromPath(getResourcePath(ResourceName.LOGO_IMAGE)),
         });
 
-        const display = screen.getDisplayNearestPoint(lyricWindow.getBounds());
-        WindowManager.lyricWindowMaxSize.width = display.bounds.width;
-        lyricWindow.setMaximumSize(WindowManager.lyricWindowMaxSize.width, WindowManager.lyricWindowMaxSize.height);
+        lyricWindow.setMaximumSize(maxSize.width, maxSize.height);
 
         // and load the index.html of the app.
         lyricWindow.loadURL(LRC_WINDOW_WEBPACK_ENTRY);
@@ -300,9 +325,13 @@ class WindowManager implements IWindowManager {
                 });
                 const currentDisplayBounds =
                     screen.getDisplayNearestPoint(point).bounds;
-                if (currentDisplayBounds.width !== WindowManager.lyricWindowMaxSize.width) {
-                    WindowManager.lyricWindowMaxSize.width = currentDisplayBounds.width;
-                    lyricWindow.setMaximumSize(WindowManager.lyricWindowMaxSize.width, WindowManager.lyricWindowMaxSize.height);
+                const nextMaxSize = this.getLyricWindowMaxSize(point);
+                if (
+                    nextMaxSize.width !== WindowManager.lyricWindowMaxSize.width ||
+                    nextMaxSize.height !== WindowManager.lyricWindowMaxSize.height
+                ) {
+                    WindowManager.lyricWindowMaxSize = nextMaxSize;
+                    lyricWindow.setMaximumSize(nextMaxSize.width, nextMaxSize.height);
                 }
             },
         });
