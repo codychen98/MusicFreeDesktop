@@ -489,8 +489,8 @@ export function isFavoriteMusic(musicItem: IMusic.IMusicItem) {
     return favoriteMusicListIds.has(getMediaPrimaryKey(musicItem));
 }
 
-/** 导出所有歌单信息 */
-export async function exportAllSheetDetails() {
+/** 导出所有歌单信息（已从 musicStore 补全每条曲目的 IMusicItem 字段） */
+export async function exportAllSheetDetails(): Promise<IMusic.IMusicSheetItem[]> {
     return await musicSheetDB.transaction(
         "readonly",
         musicSheetDB.musicStore,
@@ -513,7 +513,7 @@ export async function exportAllSheetDetails() {
                 });
             });
 
-            return allSheetDetails;
+            return allSheetDetails as IMusic.IMusicSheetItem[];
         },
     );
 }
