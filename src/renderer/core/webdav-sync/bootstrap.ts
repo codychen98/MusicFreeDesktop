@@ -29,10 +29,10 @@ function webdavSyncLog(message: string, detail?: unknown) {
 }
 
 async function autoPullFromRemote(raw: string): Promise<void> {
-    await runWithoutWebdavSyncNotify(async () => {
-        await BackupResume.resume(raw, true);
+    await runWithoutWebdavSyncNotify(async (): Promise<void> => {
+        await BackupResume.resume(raw, true, { restorePlugins: false });
     });
-    MusicSheet.frontend.setupMusicSheets().catch(() => undefined);
+    MusicSheet.frontend.setupMusicSheets().catch((): undefined => undefined);
 }
 
 /**

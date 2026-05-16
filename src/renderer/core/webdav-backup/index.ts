@@ -87,6 +87,7 @@ export async function restoreMusicSheetsFromWebdav(t: TFunction) {
     await BackupResume.resume(
         resumeData,
         AppConfig.getConfig("backup.resumeBehavior") === "overwrite",
+        { restorePlugins: false },
     );
 
     clearWebdavPendingPushAfterManualRestore();

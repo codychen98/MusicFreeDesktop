@@ -13,6 +13,11 @@ export type {
     IBackupSyncMeta,
 } from "./types";
 
+export type BackupResumeOptions = {
+    /** When false, skip reinstalling plugins from backup URLs (e.g. WebDAV restore). Default true. */
+    restorePlugins?: boolean;
+};
+
 export async function exportBackupPayload(): Promise<IBackupPayload> {
     const musicSheets = await MusicSheet.frontend.exportAllSheetDetails();
     const plugins = collectBackupPlugins();
@@ -54,13 +59,20 @@ async function resumeMusicSheets(
 }
 
 /**
- * Restore plugins first, then playlists (matches Android Backup.resume).
+ * Restore plugins first (unless disabled), then playlists (matches Android Backup.resume).
  */
-async function resume(data: string | Record<string, unknown>, overwrite?: boolean) {
+async function resume(
+    data: string | Record<string, unknown>,
+    overwrite?: boolean,
+    options?: BackupResumeOptions,
+) {
+    const restorePlugins = options?.restorePlugins !== false;
     return runWithoutWebdavSyncNotify(async () => {
         const { musicSheets, plugins } = parseBackupPayload(data);
 
-        await resumeBackupPlugins(plugins);
+        if (restorePlugins) {
+            await resumeBackupPlugins(plugins);
+        }
         await resumeMusicSheets(musicSheets, overwrite);
     });
 }
