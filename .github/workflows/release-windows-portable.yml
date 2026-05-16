@@ -1,0 +1,108 @@
+name: Release Windows Portable
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: Create as draft release (publish later from GitHub UI)
+        type: boolean
+        default: true
+      prerelease:
+        description: Mark as prerelease
+        type: boolean
+        default: false
+      tag_suffix:
+        description: Optional suffix after vVERSION for the git tag (e.g. -manual or -20260515). Use when vVERSION already exists.
+        required: false
+        type: string
+        default: ""
+      release_notes:
+        description: Optional release notes (overrides release/version.json changeLog when non-empty)
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # node-gyp (native rebuilds) uses GYP, which imports distutils; not in Python 3.12+.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: npm ci
+
+      - name: Read version
+        run: |
+          $version = node -p "require('./package.json').version"
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+
+      - run: npm run package
+
+      - name: Generate portable marker
+        run: |
+          New-Item -ItemType Directory -Path "./out/MusicFree-win32-x64/portable" -Force
+
+      - name: Archive portable
+        run: |
+          Compress-Archive -Path "./out/MusicFree-win32-x64/*" -DestinationPath "./out/MusicFree-${{ env.VERSION }}-win32-x64-portable.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MusicFree-${{ env.VERSION }}-win32-x64-portable
+          path: ./out/MusicFree-${{ env.VERSION }}-win32-x64-portable.zip
+          retention-days: 30
+
+      - name: Prepare release notes
+        env:
+          NOTES_OVERRIDE: ${{ inputs.release_notes }}
+        run: |
+          if ($env:NOTES_OVERRIDE -ne '') {
+            Set-Content -Path release-notes.md -Value $env:NOTES_OVERRIDE -Encoding utf8
+          } else {
+            $json = Get-Content release/version.json -Raw | ConvertFrom-Json
+            $text = ($json.changeLog -join "`n")
+            Set-Content -Path release-notes.md -Value $text -Encoding utf8
+          }
+
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_SUFFIX: ${{ inputs.tag_suffix }}
+          INPUT_DRAFT: ${{ inputs.draft }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          $tag = "v$env:VERSION$env:TAG_SUFFIX"
+          $repo = "${{ github.repository }}"
+          $sha = "${{ github.sha }}"
+          $zip = "./out/MusicFree-$env:VERSION-win32-x64-portable.zip"
+
+          gh api "repos/$repo/git/refs/tags/$tag" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "::error::Tag $tag already exists. Bump package.json version or set tag_suffix."
+            exit 1
+          }
+
+          gh api "repos/$repo/git/refs" -X POST -f ref="refs/tags/$tag" -f sha="$sha"
+
+          $ghArgs = @(
+            'release', 'create', $tag,
+            '--title', "MusicFree $env:VERSION (Windows portable)",
+            '--notes-file', 'release-notes.md'
+          )
+          if ($env:INPUT_DRAFT -eq 'true') { $ghArgs += '--draft' }
+          if ($env:INPUT_PRERELEASE -eq 'true') { $ghArgs += '--prerelease' }
+          $ghArgs += $zip
+
+          gh @ghArgs
