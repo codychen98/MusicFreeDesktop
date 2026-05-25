@@ -18,6 +18,9 @@ import localMusicListStore from "@/renderer/core/local-music/store";
 import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@/renderer/core/webdav-download/config";
 import { removeDownloadedMusicIfPresent } from "@/renderer/core/downloader/downloaded-migration";
 
+/** Row shape for `musicSheetDB.musicStore` (see `music-sheet-db.ts`). */
+type MusicStoreRow = IMusic.IMusicItem & { $$ref: number };
+
 export interface MigrateTrackToWebdavParams {
     remotePath: string;
     title: string;
@@ -107,14 +110,16 @@ async function replaceMatchingMusicEverywhere(
                 newItem.platform,
                 newItem.id,
             ]);
-            const toPut: IMusic.IMusicItem & { [typeof musicRefSymbol]: number } =
-                existingNew
-                    ? {
-                        ...existingNew,
-                        ...newItem,
-                        [musicRefSymbol]: existingNew[musicRefSymbol] + total,
-                    }
-                    : { ...newItem, [musicRefSymbol]: total };
+            const toPut: MusicStoreRow = existingNew
+                ? {
+                    ...existingNew,
+                    ...newItem,
+                    $$ref: existingNew[musicRefSymbol] + total,
+                }
+                : {
+                    ...newItem,
+                    $$ref: total,
+                };
             await musicSheetDB.musicStore.put(toPut);
 
             const oldStored = await musicSheetDB.musicStore.get([
