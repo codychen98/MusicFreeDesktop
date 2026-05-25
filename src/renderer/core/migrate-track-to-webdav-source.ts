@@ -107,13 +107,14 @@ async function replaceMatchingMusicEverywhere(
                 newItem.platform,
                 newItem.id,
             ]);
-            const toPut: IMusic.IMusicItem = existingNew
-                ? {
-                    ...existingNew,
-                    ...newItem,
-                    [musicRefSymbol]: existingNew[musicRefSymbol] + total,
-                }
-                : { ...newItem, [musicRefSymbol]: total };
+            const toPut: IMusic.IMusicItem & { [typeof musicRefSymbol]: number } =
+                existingNew
+                    ? {
+                        ...existingNew,
+                        ...newItem,
+                        [musicRefSymbol]: existingNew[musicRefSymbol] + total,
+                    }
+                    : { ...newItem, [musicRefSymbol]: total };
             await musicSheetDB.musicStore.put(toPut);
 
             const oldStored = await musicSheetDB.musicStore.get([

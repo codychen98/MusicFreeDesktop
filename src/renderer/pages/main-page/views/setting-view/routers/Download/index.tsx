@@ -71,14 +71,12 @@ export default function Download() {
                                             })}
                                             title={title}
                                         >
-                                            <SvgAsset
-                                                iconName={
-                                                    checked
-                                                        ? "check-circle-fill"
-                                                        : "circle"
-                                                }
-                                            />
-                                            <span>{title}</span>
+                                            <div className="checkbox">
+                                                {checked ? (
+                                                    <SvgAsset iconName="check" />
+                                                ) : null}
+                                            </div>
+                                            {title}
                                         </div>
                                     );
                                 }}

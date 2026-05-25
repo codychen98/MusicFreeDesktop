@@ -164,10 +164,10 @@ export async function uploadDownloadArtifacts(
             tranLrcUploaded,
         };
     } catch (e: unknown) {
-        logger.logError("WebDAV upload download artifacts failed", {
+        const err = e instanceof Error ? e : new Error(String(e));
+        logger.logError("WebDAV upload download artifacts failed", err, {
             remoteAudioPath,
             audioFilename: input.audioFilename,
-            reason: e instanceof Error ? e.message : e,
         });
         throw e;
     }
