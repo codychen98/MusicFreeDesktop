@@ -25,6 +25,7 @@ const _defaultAppConfig: IAppConfig =  {
     "shortCut.enableLocal": true,
     "shortCut.enableGlobal": false,
     "download.concurrency": 5,
+    "download.destination": "local",
     "normal.musicListColumnsShown": [],
     "backup.resumeBehavior": "append",
     "backup.webdav.autoSync": false,

@@ -1,4 +1,5 @@
 import { isSameMedia } from "@/common/media-util";
+import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
 import Store from "@/common/store";
 import {
     getUserPreferenceIDB,
@@ -64,6 +65,27 @@ export async function removeRecentlyPlayList(musicItem: IMusic.IMusicItem) {
 
 export async function clearRecentlyPlaylist() {
     setRecentlyPlaylist([]);
+}
+
+/** Replace every history row matching `oldItem` (Android migrate parity). */
+export async function replaceMatchingInRecentlyPlaylist(
+    oldItem: IMusic.IMusicItem,
+    newItem: IMusic.IMusicItem,
+): Promise<number> {
+    const playList = recentlyPlayListStore.getValue();
+    let count = 0;
+    const nextHistory = playList.map((row) => {
+        if (!isSameMedia(oldItem, row)) {
+            return row;
+        }
+        count += 1;
+        return { ...newItem };
+    });
+    if (count > 0) {
+        await setRecentlyPlaylist(nextHistory);
+        markWebdavLocalMutation();
+    }
+    return count;
 }
 
 export function useRecentlyPlaylistSheet() {

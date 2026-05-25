@@ -1,6 +1,7 @@
 import { ICommonTagsResult, IPicture, parseFile } from "music-metadata";
 import path from "path";
 import { localPluginName, supportLocalMediaType } from "./constant";
+import { parseDownloadBasename } from "./download-filename";
 import CryptoJS from "crypto-js";
 import fs from "fs/promises";
 import url from "url";
@@ -71,9 +72,13 @@ export async function parseLocalMusicItem(
             }
         }
 
+        const parsed = parseDownloadBasename(path.parse(filePath).name);
         return {
-            title: common.title ?? path.parse(filePath).name,
-            artist: common.artist ?? "未知作者",
+            title:
+                parsed?.title ||
+                common.title ||
+                path.parse(filePath).name,
+            artist: parsed?.artist || common.artist || "未知作者",
             artwork: common.picture?.[0]
                 ? getB64Picture(common.picture[0])
                 : undefined,
@@ -84,14 +89,15 @@ export async function parseLocalMusicItem(
             id: hash,
             rawLrc: common.lyrics?.join(""),
         };
-    } catch (e) {
+    } catch {
+        const parsed = parseDownloadBasename(path.parse(filePath).name);
         return {
-            title: path.parse(filePath).name || filePath,
+            title: parsed?.title ?? (path.parse(filePath).name || filePath),
             id: hash,
             platform: localPluginName,
             localPath: filePath,
             url: addFileScheme(filePath),
-            artist: "未知作者",
+            artist: parsed?.artist ?? "未知作者",
             album: "未知专辑",
         };
     }

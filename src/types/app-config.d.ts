@@ -68,6 +68,8 @@ interface _IAppConfig {
     "download.whenQualityMissing": "higher" | "lower";
     /** 最多同时下载 */
     "download.concurrency": number;
+    /** 下载目标：本地文件夹或 WebDAV 音乐插件目录 */
+    "download.destination": "local" | "webdav";
 
     /** 是否自动升级插件 */
     "plugin.autoUpdatePlugin": boolean;

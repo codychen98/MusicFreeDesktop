@@ -802,6 +802,37 @@ class TrackPlayer {
         return isSameMedia(musicItem, this.currentMusic);
     }
 
+    /** Replace queue/current track rows matching `oldItem` (WebDAV migrate parity). */
+    public replaceMatchingMusic(
+        oldItem: IMusic.IMusicItem,
+        newItem: IMusic.IMusicItem,
+    ): number {
+        const queue = this.musicQueue;
+        let count = 0;
+        const nextQueue = queue.map((row) => {
+            if (!isSameMedia(oldItem, row)) {
+                return row;
+            }
+            count += 1;
+            return {
+                ...newItem,
+                [timeStampSymbol]: row[timeStampSymbol],
+                [sortIndexSymbol]: row[sortIndexSymbol],
+            };
+        });
+        if (count > 0) {
+            this.setMusicQueue(nextQueue);
+        }
+        if (this.currentMusic && isSameMedia(oldItem, this.currentMusic)) {
+            currentMusicStore.setValue({
+                ...newItem,
+                [timeStampSymbol]: this.currentMusic[timeStampSymbol],
+                [sortIndexSymbol]: this.currentMusic[sortIndexSymbol],
+            });
+        }
+        return count;
+    }
+
 }
 
 

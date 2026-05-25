@@ -4,6 +4,7 @@ import {
     isSameMedia,
     setInternalData,
 } from "@/common/media-util";
+import { buildDownloadBasename } from "@/common/download-filename";
 import * as Comlink from "comlink";
 import { DownloadState, localPluginName } from "@/common/constant";
 import PQueue from "p-queue";
@@ -21,13 +22,25 @@ import { useEffect, useState } from "react";
 import { DownloadEvts, ee } from "./ee";
 import AppConfig from "@shared/app-config/renderer";
 import PluginManager from "@shared/plugin-manager/renderer";
-
+import { fsUtil } from "@shared/utils/renderer";
+import {
+    isWebdavDownloadTargetAvailable,
+} from "@/renderer/core/webdav-download/config";
+import { uploadDownloadArtifacts } from "@/renderer/core/webdav-download/upload";
+import { migrateTrackToWebdavSource } from "@/renderer/core/migrate-track-to-webdav-source";
+import { toast } from "react-toastify";
+import { i18n } from "@/shared/i18n/renderer";
 
 export interface IDownloadStatus {
     state: DownloadState;
     downloaded?: number;
     total?: number;
     msg?: string;
+}
+
+interface SidecarLyricPaths {
+    lrcPath?: string;
+    tranLrcPath?: string;
 }
 
 const downloadingMusicStore = new Store<Array<IMusic.IMusicItem>>([]);
@@ -54,7 +67,6 @@ async function setupDownloader() {
 }
 
 function setupDownloaderWorker() {
-    // 初始化worker
     const downloaderWorkerPath = getGlobalContext().workersPath.downloader;
     if (downloaderWorkerPath) {
         const worker = new Worker(downloaderWorkerPath);
@@ -78,6 +90,82 @@ function setDownloadingConcurrency(concurrency: number) {
     );
 }
 
+function shouldUseWebdavDownloadDestination(): boolean {
+    const destination =
+        AppConfig.getConfig("download.destination") ?? "local";
+    return destination === "webdav" && isWebdavDownloadTargetAvailable();
+}
+
+async function ensureDirectory(dirPath: string): Promise<void> {
+    try {
+        await fsUtil.mkdir(dirPath, { recursive: true });
+    } catch {
+        // pass
+    }
+}
+
+async function writeSidecarLyrics(
+    musicItem: IMusic.IMusicItem,
+    audioPath: string,
+): Promise<SidecarLyricPaths> {
+    try {
+        const lrcSource = await PluginManager.callPluginDelegateMethod(
+            musicItem,
+            "getLyric",
+            musicItem,
+        );
+        if (!lrcSource) {
+            return {};
+        }
+        const lastDot = audioPath.lastIndexOf(".");
+        if (lastDot === -1) {
+            return {};
+        }
+        const basePath = audioPath.slice(0, lastDot);
+        const paths: SidecarLyricPaths = {};
+        if (lrcSource.rawLrc) {
+            const lrcPath = `${basePath}.lrc`;
+            await fsUtil.writeFile(lrcPath, lrcSource.rawLrc, "utf8");
+            paths.lrcPath = lrcPath;
+        }
+        if (lrcSource.translation) {
+            const tranPath = `${basePath}.tran.lrc`;
+            await fsUtil.writeFile(tranPath, lrcSource.translation, "utf8");
+            paths.tranLrcPath = tranPath;
+        }
+        return paths;
+    } catch {
+        return {};
+    }
+}
+
+async function rimrafSidecars(paths: SidecarLyricPaths): Promise<void> {
+    const files = [paths.lrcPath, paths.tranLrcPath].filter(Boolean) as string[];
+    await Promise.all(files.map((fp) => fsUtil.rimraf(fp).catch(() => undefined)));
+}
+
+async function finalizeLocalDownload(
+    cacheDownloadPath: string,
+    targetDownloadPath: string,
+    musicItem: IMusic.IMusicItem,
+    realQuality: IMusic.IQualityKey,
+): Promise<void> {
+    await ensureDirectory(window.path.dirname(targetDownloadPath));
+    await fsUtil.copyFile(cacheDownloadPath, targetDownloadPath);
+    await writeSidecarLyrics(musicItem, targetDownloadPath);
+    addDownloadedMusicToList(
+        setInternalData<IMusic.IMusicItemInternalData>(
+            musicItem,
+            "downloadData",
+            {
+                path: targetDownloadPath,
+                quality: realQuality,
+            },
+            true,
+        ) as IMusic.IMusicItem,
+    );
+}
+
 async function startDownload(
     musicItems: IMusic.IMusicItem | IMusic.IMusicItem[],
 ) {
@@ -86,7 +174,6 @@ async function startDownload(
     }
 
     const _musicItems = Array.isArray(musicItems) ? musicItems : [musicItems];
-    // 过滤掉已下载的、本地音乐、任务中的音乐
     const _validMusicItems = _musicItems.filter(
         (it) => !isDownloaded(it) && it.platform !== localPluginName,
     );
@@ -98,15 +185,14 @@ async function startDownload(
         });
 
         return async () => {
-            // Not on waiting list
             if (!downloadingProgress.has(pk)) {
                 return;
             }
 
             downloadingProgress.get(pk).state = DownloadState.DOWNLOADING;
-            const fileName = `${it.title}-${it.artist}`.replace(/[/|\\?*"<>:]/g, "_");
+            const fileBasename = buildDownloadBasename(it);
             await new Promise<void>((resolve) => {
-                downloadMusicImpl(it, fileName, (stateData) => {
+                downloadMusicImpl(it, fileBasename, (stateData) => {
                     downloadingProgress.set(pk, stateData);
                     ee.emit(DownloadEvts.DownloadStatusUpdated, it, stateData);
                     if (stateData.state === DownloadState.DONE) {
@@ -129,7 +215,7 @@ async function startDownload(
 
 async function downloadMusicImpl(
     musicItem: IMusic.IMusicItem,
-    fileName: string,
+    fileBasename: string,
     onStateChange: IOnStateChangeFunc,
 ) {
     const [defaultQuality, whenQualityMissing] = [
@@ -156,43 +242,106 @@ async function downloadMusicImpl(
     }
 
     try {
-        if (mediaSource?.url) {
-            const ext = mediaSource.url.match(/.*\/.+\.([^./?#]+)/)?.[1] ?? "mp3";
-            const downloadBasePath =
-                AppConfig.getConfig("download.path") ??
-        getGlobalContext().appPath.downloads;
-            const downloadPath = window.path.resolve(
-                downloadBasePath,
-                `./${fileName}.${ext}`,
-            );
-            downloaderWorker.downloadFile(
-                mediaSource,
-                downloadPath,
-                Comlink.proxy((dataState) => {
-                    onStateChange(dataState);
-                    if (dataState.state === DownloadState.DONE) {
-                        addDownloadedMusicToList(
-                            setInternalData<IMusic.IMusicItemInternalData>(
-                                musicItem as any,
-                                "downloadData",
-                                {
-                                    path: downloadPath,
-                                    quality: realQuality,
-                                },
-                                true,
-                            ) as IMusic.IMusicItem,
-                        );
-                    }
-                }),
-            );
-        } else {
+        if (!mediaSource?.url) {
             throw new Error("Invalid Source");
         }
+
+        const ext = mediaSource.url.match(/.*\/.+\.([^./?#]+)/)?.[1] ?? "mp3";
+        const audioFilename = `${fileBasename}.${ext}`;
+        const downloadBasePath =
+            AppConfig.getConfig("download.path") ??
+            getGlobalContext().appPath.downloads;
+        const useWebdav = shouldUseWebdavDownloadDestination();
+        const cacheDir = window.path.resolve(downloadBasePath, ".mf-dl-cache");
+        const cacheDownloadPath = window.path.resolve(cacheDir, audioFilename);
+
+        if (!useWebdav) {
+            await ensureDirectory(downloadBasePath);
+        }
+        await ensureDirectory(cacheDir);
+
+        const targetDownloadPath = window.path.resolve(
+            downloadBasePath,
+            audioFilename,
+        );
+
+        downloaderWorker.downloadFile(
+            mediaSource,
+            cacheDownloadPath,
+            Comlink.proxy(async (dataState) => {
+                onStateChange(dataState);
+                if (dataState.state !== DownloadState.DONE) {
+                    return;
+                }
+
+                try {
+                    if (useWebdav) {
+                        const sidecars = await writeSidecarLyrics(
+                            musicItem,
+                            cacheDownloadPath,
+                        );
+                        try {
+                            const uploadResult = await uploadDownloadArtifacts({
+                                localAudioPath: cacheDownloadPath,
+                                audioFilename,
+                                localLrcPath: sidecars.lrcPath ?? null,
+                                localTranLrcPath: sidecars.tranLrcPath ?? null,
+                            });
+                            await migrateTrackToWebdavSource(musicItem, {
+                                remotePath: uploadResult.remoteAudioPath,
+                                title: musicItem.title,
+                                artist: musicItem.artist,
+                                album: musicItem.album,
+                                duration: musicItem.duration,
+                            });
+                            if (uploadResult.audioSkipped) {
+                                toast.info(
+                                    i18n.t(
+                                        "settings.download.toast_webdav_audio_skipped",
+                                    ),
+                                );
+                            }
+                        } catch {
+                            await finalizeLocalDownload(
+                                cacheDownloadPath,
+                                targetDownloadPath,
+                                musicItem,
+                                realQuality,
+                            );
+                            toast.warning(
+                                i18n.t(
+                                    "settings.download.toast_webdav_upload_fallback",
+                                ),
+                            );
+                        } finally {
+                            await fsUtil.rimraf(cacheDownloadPath).catch(
+                                () => undefined,
+                            );
+                            await rimrafSidecars(sidecars);
+                        }
+                    } else {
+                        await finalizeLocalDownload(
+                            cacheDownloadPath,
+                            targetDownloadPath,
+                            musicItem,
+                            realQuality,
+                        );
+                        await fsUtil.rimraf(cacheDownloadPath).catch(
+                            () => undefined,
+                        );
+                    }
+                } catch (e) {
+                    onStateChange({
+                        state: DownloadState.ERROR,
+                        msg: e instanceof Error ? e.message : String(e),
+                    });
+                }
+            }),
+        );
     } catch (e) {
-        console.log(e, "ERROR");
         onStateChange({
             state: DownloadState.ERROR,
-            msg: e?.message,
+            msg: e instanceof Error ? e.message : String(e),
         });
     }
 }
@@ -223,7 +372,6 @@ function useDownloadStatus(musicItem: IMusic.IMusicItem) {
     return downloadStatus;
 }
 
-// 下载状态
 function useDownloadState(musicItem: IMusic.IMusicItem) {
     const musicStatus = useDownloadStatus(musicItem);
     const downloaded = useDownloaded(musicItem);

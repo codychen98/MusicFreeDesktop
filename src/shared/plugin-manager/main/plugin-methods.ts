@@ -137,6 +137,7 @@ export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 localPath,
                 `../${fileName}-tr`,
             );
+            const tranLrcPath = path.resolve(localPath, `../${fileName}.tran.lrc`);
             const exts = [".lrc", ".LRC", ".txt"];
 
             for (const ext of exts) {
@@ -144,7 +145,11 @@ export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
                 if ((await safeStat(lrcFilePath))?.isFile()) {
                     rawLrc = await fs.readFile(lrcFilePath, "utf8");
 
-                    if ((await safeStat(lrcTranslationPathWithoutExt + ext))?.isFile()) {
+                    if ((await safeStat(tranLrcPath))?.isFile()) {
+                        translation = await fs.readFile(tranLrcPath, "utf8");
+                    } else if (
+                        (await safeStat(lrcTranslationPathWithoutExt + ext))?.isFile()
+                    ) {
                         translation = await fs.readFile(
                             lrcTranslationPathWithoutExt + ext,
                             "utf8",

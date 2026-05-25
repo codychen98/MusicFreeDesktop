@@ -40,9 +40,22 @@ function addFileScheme(filePath: string) {
         : url.pathToFileURL(filePath).toString();
 }
 
+async function mkdir(
+    dirPath: string,
+    options?: { recursive?: boolean },
+): Promise<void> {
+    await fs.mkdir(dirPath, options);
+}
+
+async function copyFile(src: string, dest: string): Promise<void> {
+    await fs.copyFile(src, dest);
+}
+
 const fsUtil = {
     writeFile,
     readFile,
+    mkdir,
+    copyFile,
     isFile,
     isFolder,
     rimraf,
