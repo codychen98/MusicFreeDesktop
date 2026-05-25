@@ -55,7 +55,9 @@ export const rendererConfig: Configuration = {
       "@": path.join(__dirname, "../src"),
       "@renderer": path.join(__dirname, "../src/renderer"),
       "@renderer-lrc": path.join(__dirname, "../src/renderer-lrc"),
-      "@shared": path.join(__dirname, "../src/shared")
+      "@shared": path.join(__dirname, "../src/shared"),
+      // Renderer must use the Node build so binary PUT accepts Buffer/ArrayBuffer.
+      webdav: path.join(__dirname, "../node_modules/webdav/dist/node/index.js"),
     },
   },
   externals: process.platform !== "darwin" ? ["fsevents"] : undefined,

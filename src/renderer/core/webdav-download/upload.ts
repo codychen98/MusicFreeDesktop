@@ -82,6 +82,18 @@ export async function remoteAudioExists(remotePath: string): Promise<boolean> {
 
 export type UploadFileMode = "binary" | "text";
 
+/** Node Buffer from preload fs is not always accepted by the webdav browser build. */
+async function readLocalUploadPayload(
+    localPath: string,
+    mode: UploadFileMode,
+): Promise<string | ArrayBuffer> {
+    if (mode === "text") {
+        return (await fsUtil.readFile(localPath, "utf8")) as string;
+    }
+    const buf = (await fsUtil.readFile(localPath)) as Buffer;
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+}
+
 export async function uploadFile(
     localPath: string,
     remotePath: string,
@@ -91,10 +103,7 @@ export async function uploadFile(
     const client = getWebdavMusicClient(config);
     await ensureRemoteDirectory(client, config.remoteDir);
 
-    const payload =
-        mode === "text"
-            ? await fsUtil.readFile(localPath, "utf8")
-            : await fsUtil.readFile(localPath);
+    const payload = await readLocalUploadPayload(localPath, mode);
 
     await client.putFileContents(remotePath, payload, {
         overwrite: true,

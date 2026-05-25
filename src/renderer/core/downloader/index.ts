@@ -301,7 +301,11 @@ async function downloadMusicImpl(
                                     ),
                                 );
                             }
-                        } catch {
+                        } catch (uploadError: unknown) {
+                            const uploadReason =
+                                uploadError instanceof Error
+                                    ? uploadError.message
+                                    : String(uploadError);
                             await finalizeLocalDownload(
                                 cacheDownloadPath,
                                 targetDownloadPath,
@@ -309,9 +313,7 @@ async function downloadMusicImpl(
                                 realQuality,
                             );
                             toast.warning(
-                                i18n.t(
-                                    "settings.download.toast_webdav_upload_fallback",
-                                ),
+                                `${i18n.t("settings.download.toast_webdav_upload_fallback")} (${uploadReason})`,
                             );
                         } finally {
                             await fsUtil.rimraf(cacheDownloadPath).catch(
