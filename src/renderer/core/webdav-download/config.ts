@@ -1,9 +1,9 @@
 import AppConfig from "@shared/app-config/renderer";
 import PluginManager from "@shared/plugin-manager/renderer";
 
-import { resolveFirstSearchPathSegment } from "./path";
+import { resolveFirstSearchPathSegment } from "@/common/webdav-download-path";
 
-export { resolveFirstSearchPathSegment } from "./path";
+export { resolveFirstSearchPathSegment } from "@/common/webdav-download-path";
 
 export const WEBDAV_MUSIC_PLUGIN_PLATFORM = "WebDAV" as const;
 

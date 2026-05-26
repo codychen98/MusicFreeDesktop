@@ -18,6 +18,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import PluginManager from "@shared/plugin-manager/main";
 import ServiceManager from "@shared/service-manager/main";
 import utils from "@shared/utils/main";
+import webdavMusicUpload from "@shared/webdav-music-upload/main";
 import messageBus from "@shared/message-bus/main";
 import shortCut from "@shared/short-cut/main";
 import voidCallback from "@/common/void-callback";
@@ -74,7 +75,9 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.on("second-instance", (_evt, commandLine) => {
-    const url = commandLine.find((arg) => arg.startsWith("musicfree://")) ?? commandLine.at(-1);
+    const url =
+        commandLine.find((arg) => arg.startsWith("musicfree://")) ??
+        commandLine[commandLine.length - 1];
     if (windowManager.mainWindow && !isPlayerDeepLink(url)) {
         windowManager.showMainWindow();
     }
@@ -114,6 +117,7 @@ app.whenReady().then(async () => {
         },
     });
     utils.setup(windowManager);
+    webdavMusicUpload.setup();
     PluginManager.setup(windowManager);
     TrayManager.setup(windowManager);
     WindowDrag.setup();
