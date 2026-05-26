@@ -37,7 +37,7 @@ function getWebdavMusicPluginUserVariables(): Record<string, string> {
     return meta[WEBDAV_MUSIC_PLUGIN_PLATFORM]?.userVariables ?? {};
 }
 
-export export function getWebdavMusicPluginConfig(): WebdavMusicPluginConfig {
+export function getWebdavMusicPluginConfig(): WebdavMusicPluginConfig {
     const vars = getWebdavMusicPluginUserVariables();
     const url = vars.url?.trim() ?? "";
     const username = vars.username?.trim() ?? "";
