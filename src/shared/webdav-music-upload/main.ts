@@ -1,7 +1,11 @@
 import { ipcMain } from "electron";
 
+import { deleteWebdavRemoteTrack } from "./delete-impl";
 import { uploadDownloadArtifacts } from "./upload-impl";
-import type { UploadDownloadArtifactsInput } from "./types";
+import type {
+    DeleteWebdavRemoteTrackInput,
+    UploadDownloadArtifactsInput,
+} from "./types";
 
 class WebdavMusicUploadMain {
     setup() {
@@ -11,6 +15,11 @@ class WebdavMusicUploadMain {
                 _evt,
                 input: UploadDownloadArtifactsInput,
             ) => uploadDownloadArtifacts(input),
+        );
+        ipcMain.handle(
+            "@shared/webdav-music-upload/delete-remote-track",
+            async (_evt, input: DeleteWebdavRemoteTrackInput) =>
+                deleteWebdavRemoteTrack(input),
         );
     }
 }

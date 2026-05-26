@@ -307,6 +307,8 @@
       "webdav_plugin_list_hint": "After uploading, reopen the WebDAV plugin list to see new files.",
       "toast_webdav_audio_skipped": "Audio already on WebDAV; upload skipped.",
       "toast_webdav_upload_fallback": "WebDAV upload failed; saved to local download folder.",
+      "toast_webdav_remote_delete_skipped": "\"{{title}}\" removed from this list; WebDAV file kept because the track is still in: {{playlists}}",
+      "toast_webdav_remote_delete_failed": "\"{{title}}\" removed from the list, but WebDAV delete failed: {{reason}}",
       "max_concurrency": "Maximum concurrent downloads",
       "default_download_quality": "Default download quality",
       "when_quality_missing": "When download quality is missing",

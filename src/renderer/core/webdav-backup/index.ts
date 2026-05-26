@@ -84,11 +84,13 @@ export async function restoreMusicSheetsFromWebdav(t: TFunction) {
         throw new Error(t("settings.backup.webdav_backup_file_not_exist"));
     }
 
-    await BackupResume.resume(
-        resumeData,
-        AppConfig.getConfig("backup.resumeBehavior") === "overwrite",
-        { restorePlugins: false },
-    );
+    const overwrite =
+        AppConfig.getConfig("backup.resumeBehavior") === "overwrite";
+
+    await BackupResume.resume(resumeData, overwrite, {
+        restorePlugins: false,
+        fullSheetOverwrite: overwrite,
+    });
 
     clearWebdavPendingPushAfterManualRestore();
     await MusicSheet.frontend.setupMusicSheets();

@@ -4,6 +4,7 @@ import defaultSheet from "../common/default-sheet";
 import { useEffect, useRef, useState } from "react";
 import { RequestStateCode, localPluginName } from "@/common/constant";
 import { toMediaBase } from "@/common/media-util";
+import { handleWebdavAfterPlaylistRemove } from "@/renderer/core/webdav-download/afterPlaylistRemove";
 
 const musicSheetsStore = new Store<IMusic.IDBMusicSheetItem[]>([]);
 const starredSheetsStore = new Store<IMedia.IMediaBase[]>([]);
@@ -197,7 +198,8 @@ export async function removeMusicFromSheet(
     sheetId: string,
 ) {
     const start = Date.now();
-    await backend.removeMusicFromSheet(musicItems, sheetId);
+    const removedItems = Array.isArray(musicItems) ? musicItems : [musicItems];
+    await backend.removeMusicFromSheet(removedItems, sheetId);
     console.log("删除音乐", Date.now() - start, "ms");
 
     musicSheetsStore.setValue(backend.getAllSheets());
@@ -206,6 +208,10 @@ export async function removeMusicFromSheet(
         refreshFavoriteState();
     }
     refetchSheetDetail(sheetId);
+    await handleWebdavAfterPlaylistRemove(
+        removedItems,
+        backend.findSheetsContainingMusic,
+    );
 }
 
 /** 从默认歌单中移除 */
@@ -213,6 +219,15 @@ export async function removeMusicFromFavorite(
     musicItems: IMusic.IMusicItem | IMusic.IMusicItem[],
 ) {
     return removeMusicFromSheet(musicItems, defaultSheet.id);
+}
+
+/** Replace local playlists with remote backup (WebDAV auto-pull). */
+export async function resumeSheetsFullOverwrite(
+    sheets: IMusic.IMusicSheetItem[],
+) {
+    await backend.resumeSheetsFullOverwrite(sheets);
+    musicSheetsStore.setValue(backend.getAllSheets());
+    refreshFavoriteState();
 }
 
 /** 是否是我喜欢的歌单 */

@@ -285,6 +285,8 @@
       "webdav_plugin_list_hint": "上传后请重新打开 WebDAV 插件列表以查看新文件。",
       "toast_webdav_audio_skipped": "WebDAV 上已有该音频，已跳过上传。",
       "toast_webdav_upload_fallback": "WebDAV 上传失败，已保存到本地下载目录。",
+      "toast_webdav_remote_delete_skipped": "「{{title}}」已从当前列表移除；WebDAV 文件仍保留，歌曲还在：{{playlists}}",
+      "toast_webdav_remote_delete_failed": "「{{title}}」已从列表移除，但 WebDAV 文件删除失败：{{reason}}",
       "max_concurrency": "最多同时下载歌曲数",
       "default_download_quality": "默认下载音质",
       "when_quality_missing": "下载音质缺失时",

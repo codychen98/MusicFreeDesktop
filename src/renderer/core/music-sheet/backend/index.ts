@@ -12,6 +12,7 @@ import defaultSheet from "../common/default-sheet";
 import { getMediaPrimaryKey, isSameMedia } from "@/common/media-util";
 import { getUserPreferenceIDB, setUserPreferenceIDB } from "@/renderer/utils/user-perference";
 import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
+import { dedupeMusicListForRemoteRestore } from "@/renderer/core/backup-resume/dedupe-remote-restore";
 
 /******************** 内存缓存 ***********************/
 // 默认歌单，快速判定是否在列表中
@@ -50,6 +51,28 @@ export function sortLocalSheetsStable(
  */
 export function getAllSheets() {
     return musicSheets;
+}
+
+/** Playlists that still contain this track (by platform + id). */
+export function findSheetsContainingMusic(
+    musicItem: IMedia.IMediaBase,
+): Array<{ id: string; title: string }> {
+    const matches: Array<{ id: string; title: string }> = [];
+
+    for (const sheet of musicSheets) {
+        const hasItem = (sheet.musicList ?? []).some(mi =>
+            isSameMedia(mi, musicItem),
+        );
+        if (!hasItem) {
+            continue;
+        }
+        matches.push({
+            id: sheet.id,
+            title: sheet.title?.trim() || defaultSheet.title,
+        });
+    }
+
+    return matches;
 }
 
 export function getAllStarredSheets() {
@@ -567,6 +590,138 @@ export function replaceFavoriteMusicId(
     }
     favoriteMusicListIds.delete(oldKey);
     favoriteMusicListIds.add(getMediaPrimaryKey(newItem));
+}
+
+/**
+ * Replace local playlists to match backup (parity with Android resumeSheetsFullOverwrite).
+ * Drops every local sheet and track not present in the remote payload.
+ */
+export async function resumeSheetsFullOverwrite(
+    sheetsSource: IMusic.IMusicSheetItem[],
+): Promise<void> {
+    const incoming = Array.isArray(sheetsSource) ? sheetsSource : [];
+    const previousSheetIds = musicSheets.map(sheet => sheet.id);
+    const now = Date.now();
+
+    let defaultPayload: IMusic.IMusicSheetItem | undefined;
+    const customPayloads: IMusic.IMusicSheetItem[] = [];
+    for (const sheet of incoming) {
+        if (!sheet) {
+            continue;
+        }
+        if (sheet.id === defaultSheet.id) {
+            defaultPayload = sheet;
+        } else {
+            customPayloads.push(sheet);
+        }
+    }
+
+    const refCounts = new Map<string, number>();
+    const musicDetails = new Map<string, IMusic.IMusicItem>();
+
+    const ingestSheetMusic = (musicList: IMusic.IMusicItem[]): IMedia.IMediaBase[] => {
+        const deduped = dedupeMusicListForRemoteRestore(musicList);
+        return deduped.map((item, index) => {
+            const key = getMediaPrimaryKey(item);
+            refCounts.set(key, (refCounts.get(key) ?? 0) + 1);
+            if (!musicDetails.has(key)) {
+                musicDetails.set(key, item);
+            }
+            return {
+                platform: item.platform,
+                id: item.id,
+                [sortIndexSymbol]: index,
+                [timeStampSymbol]: item.$timestamp ?? now,
+            };
+        });
+    };
+
+    const defaultDeduped = dedupeMusicListForRemoteRestore(
+        defaultPayload?.musicList ?? [],
+    );
+    const defaultRefs = ingestSheetMusic(defaultPayload?.musicList ?? []);
+
+    const customSheetsBuilt: IMusic.IDBMusicSheetItem[] = customPayloads.map(
+        (sheet, sheetIndex) => {
+            const deduped = dedupeMusicListForRemoteRestore(sheet.musicList ?? []);
+            const refs = ingestSheetMusic(sheet.musicList ?? []);
+            const sheetId =
+                typeof sheet.id === "string" &&
+                sheet.id.length > 0 &&
+                sheet.id !== defaultSheet.id
+                    ? sheet.id
+                    : nanoid();
+            return {
+                id: sheetId,
+                title: sheet.title || "",
+                platform: sheet.platform ?? localPluginName,
+                createAt: sheet.createAt ?? now,
+                $$sortIndex:
+                    typeof sheet.$$sortIndex === "number"
+                        ? sheet.$$sortIndex
+                        : sheetIndex + 1,
+                artwork:
+                    sheet.artwork ??
+                    (sheet as IMusic.IMusicSheetItem).coverImg ??
+                    deduped[0]?.artwork,
+                musicList: refs,
+            };
+        },
+    );
+
+    const defaultRow: IMusic.IDBMusicSheetItem = {
+        ...defaultSheet,
+        title: defaultPayload?.title?.trim() || defaultSheet.title,
+        artwork:
+            defaultPayload?.artwork ??
+            defaultDeduped[0]?.artwork,
+        musicList: defaultRefs,
+    };
+
+    const newSheetIds = new Set([
+        defaultSheet.id,
+        ...customSheetsBuilt.map(sheet => sheet.id),
+    ]);
+
+    await musicSheetDB.transaction(
+        "rw",
+        musicSheetDB.sheets,
+        musicSheetDB.musicStore,
+        async () => {
+            for (const oldId of previousSheetIds) {
+                if (!newSheetIds.has(oldId)) {
+                    await musicSheetDB.sheets.delete(oldId);
+                }
+            }
+
+            await musicSheetDB.musicStore.clear();
+
+            const storeRows = Array.from(musicDetails.values()).map(item => ({
+                ...item,
+                [musicRefSymbol]: refCounts.get(getMediaPrimaryKey(item)) ?? 0,
+            }));
+            if (storeRows.length > 0) {
+                await musicSheetDB.musicStore.bulkPut(storeRows);
+            }
+
+            await musicSheetDB.sheets.put(defaultRow);
+            for (const sheet of customSheetsBuilt) {
+                await musicSheetDB.sheets.put(sheet);
+            }
+        },
+    );
+
+    favoriteMusicListIds.clear();
+    defaultRefs.forEach(ref => {
+        favoriteMusicListIds.add(getMediaPrimaryKey(ref));
+    });
+
+    musicSheets = sortLocalSheetsStable([defaultRow, ...customSheetsBuilt]);
+
+    starredMusicSheets = starredMusicSheets.filter(sheet =>
+        newSheetIds.has(sheet.id),
+    );
+    await setUserPreferenceIDB("starredMusicSheets", starredMusicSheets);
 }
 
 /** 导出所有歌单信息（已从 musicStore 补全每条曲目的 IMusicItem 字段） */

@@ -18,3 +18,8 @@ export interface UploadDownloadArtifactsResult {
     lrcUploaded: boolean;
     tranLrcUploaded: boolean;
 }
+
+export interface DeleteWebdavRemoteTrackInput {
+    /** Full remote audio path (`musicItem.id` for WebDAV rows). */
+    remoteAudioPath: string;
+}

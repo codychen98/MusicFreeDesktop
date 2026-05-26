@@ -16,6 +16,8 @@ export type {
 export type BackupResumeOptions = {
     /** When false, skip reinstalling plugins from backup URLs (e.g. WebDAV restore). Default true. */
     restorePlugins?: boolean;
+    /** Atomic replace local sheets/tracks with remote payload (WebDAV auto-pull / overwrite restore). */
+    fullSheetOverwrite?: boolean;
 };
 
 export async function exportBackupPayload(): Promise<IBackupPayload> {
@@ -73,7 +75,12 @@ async function resume(
         if (restorePlugins) {
             await resumeBackupPlugins(plugins);
         }
-        await resumeMusicSheets(musicSheets, overwrite);
+
+        if (options?.fullSheetOverwrite) {
+            await MusicSheet.frontend.resumeSheetsFullOverwrite(musicSheets);
+        } else {
+            await resumeMusicSheets(musicSheets, overwrite);
+        }
     });
 }
 

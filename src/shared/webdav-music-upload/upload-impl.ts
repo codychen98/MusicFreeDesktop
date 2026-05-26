@@ -37,7 +37,7 @@ function getWebdavMusicPluginUserVariables(): Record<string, string> {
     return meta[WEBDAV_MUSIC_PLUGIN_PLATFORM]?.userVariables ?? {};
 }
 
-export function getWebdavMusicPluginConfig(): WebdavMusicPluginConfig {
+export export function getWebdavMusicPluginConfig(): WebdavMusicPluginConfig {
     const vars = getWebdavMusicPluginUserVariables();
     const url = vars.url?.trim() ?? "";
     const username = vars.username?.trim() ?? "";
@@ -53,7 +53,7 @@ export function getWebdavMusicPluginConfig(): WebdavMusicPluginConfig {
 let cachedClient: WebDAVClient | null = null;
 let cachedClientKey = "";
 
-function getWebdavMusicClient(config: WebdavMusicPluginConfig): WebDAVClient {
+export function getWebdavMusicClient(config: WebdavMusicPluginConfig): WebDAVClient {
     const key = `${config.url}\0${config.username}\0${config.password}`;
     if (cachedClient && cachedClientKey === key) {
         return cachedClient;
