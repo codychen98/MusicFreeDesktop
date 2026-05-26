@@ -7,10 +7,13 @@ import {
     timeStampSymbol,
 } from "@/common/constant";
 import musicSheetDB from "@/renderer/core/db/music-sheet-db";
+import defaultSheet from "@/renderer/core/music-sheet/common/default-sheet";
 import {
     getAllSheets,
     queryAllSheets,
+    replaceFavoriteMusicId,
 } from "@/renderer/core/music-sheet/backend";
+import { notifySheetsChanged } from "@/renderer/core/music-sheet/frontend";
 import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
 import { replaceMatchingInRecentlyPlaylist } from "@/renderer/core/recently-playlist";
 import trackPlayer from "@/renderer/core/track-player";
@@ -62,15 +65,21 @@ function buildMigratedMusicItem(
     return next;
 }
 
+interface ReplaceMatchingMusicEverywhereResult {
+    sheetsReplaced: number;
+    affectedSheetIds: string[];
+}
+
 async function replaceMatchingMusicEverywhere(
     oldItem: IMusic.IMusicItem,
     newItem: IMusic.IMusicItem,
-): Promise<number> {
+): Promise<ReplaceMatchingMusicEverywhereResult> {
     if (!getAllSheets().length) {
         await queryAllSheets();
     }
     const sheets = getAllSheets();
     let total = 0;
+    const affectedSheetIds: string[] = [];
 
     await musicSheetDB.transaction(
         "rw",
@@ -96,6 +105,7 @@ async function replaceMatchingMusicEverywhere(
                 if (!sheetChanged) {
                     continue;
                 }
+                affectedSheetIds.push(sheet.id);
                 await musicSheetDB.sheets.update(sheet.id, {
                     musicList: newList,
                 });
@@ -143,7 +153,7 @@ async function replaceMatchingMusicEverywhere(
     if (total > 0) {
         markWebdavLocalMutation();
     }
-    return total;
+    return { sheetsReplaced: total, affectedSheetIds };
 }
 
 async function removeLocalDuplicates(
@@ -188,10 +198,12 @@ export async function migrateTrackToWebdavSource(
     params: MigrateTrackToWebdavParams,
 ): Promise<MigrateTrackToWebdavResult> {
     const newItem = buildMigratedMusicItem(oldItem, params);
-    const sheetsReplaced = await replaceMatchingMusicEverywhere(
-        oldItem,
-        newItem,
-    );
+    const { sheetsReplaced, affectedSheetIds } =
+        await replaceMatchingMusicEverywhere(oldItem, newItem);
+    if (affectedSheetIds.includes(defaultSheet.id)) {
+        replaceFavoriteMusicId(oldItem, newItem);
+    }
+    await notifySheetsChanged(affectedSheetIds);
     const historyReplaced = await replaceMatchingInRecentlyPlaylist(
         oldItem,
         newItem,

@@ -556,6 +556,19 @@ export function isFavoriteMusic(musicItem: IMusic.IMusicItem) {
     return favoriteMusicListIds.has(getMediaPrimaryKey(musicItem));
 }
 
+/** Keep favorite Set aligned when default-sheet refs change (e.g. WebDAV migrate). */
+export function replaceFavoriteMusicId(
+    oldItem: IMedia.IMediaBase,
+    newItem: IMedia.IMediaBase,
+) {
+    const oldKey = getMediaPrimaryKey(oldItem);
+    if (!favoriteMusicListIds.has(oldKey)) {
+        return;
+    }
+    favoriteMusicListIds.delete(oldKey);
+    favoriteMusicListIds.add(getMediaPrimaryKey(newItem));
+}
+
 /** 导出所有歌单信息（已从 musicStore 补全每条曲目的 IMusicItem 字段） */
 export async function exportAllSheetDetails(): Promise<IMusic.IMusicSheetItem[]> {
     return await musicSheetDB.transaction(

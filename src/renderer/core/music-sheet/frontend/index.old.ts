@@ -267,6 +267,27 @@ async function refetchSheetDetail(sheetId: string) {
 }
 
 /**
+ * Refresh open playlist views after backend-only sheet mutations (WebDAV migrate parity).
+ */
+export async function notifySheetsChanged(sheetIds: string[]) {
+    if (!sheetIds.length) {
+        return;
+    }
+    musicSheetsStore.setValue(backend.getAllSheets());
+    const uniqueIds = [...new Set(sheetIds)];
+    let favoriteTouched = false;
+    for (const sheetId of uniqueIds) {
+        if (sheetId === defaultSheet.id) {
+            favoriteTouched = true;
+        }
+        await refetchSheetDetail(sheetId);
+    }
+    if (favoriteTouched) {
+        refreshFavoriteState();
+    }
+}
+
+/**
  * 监听当前某个歌单
  * @param sheetId 歌单ID
  * @param initQuery 是否重新查询
