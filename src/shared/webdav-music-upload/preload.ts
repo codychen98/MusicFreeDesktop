@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from "electron";
 
 import type {
     DeleteWebdavRemoteTrackInput,
+    RemoteAudioExistsInput,
+    RemoteAudioExistsResult,
     UploadDownloadArtifactsInput,
     UploadDownloadArtifactsResult,
 } from "./types";
@@ -12,6 +14,13 @@ const mod = {
     ): Promise<UploadDownloadArtifactsResult> =>
         ipcRenderer.invoke(
             "@shared/webdav-music-upload/upload-download-artifacts",
+            input,
+        ),
+    remoteAudioExists: (
+        input: RemoteAudioExistsInput,
+    ): Promise<RemoteAudioExistsResult> =>
+        ipcRenderer.invoke(
+            "@shared/webdav-music-upload/remote-audio-exists",
             input,
         ),
     deleteWebdavRemoteTrack: (

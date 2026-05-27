@@ -11,11 +11,15 @@ import {
 
 import {
     WebdavMusicPluginConfigIncompleteError,
+    type RemoteAudioExistsInput,
+    type RemoteAudioExistsResult,
     type UploadDownloadArtifactsInput,
     type UploadDownloadArtifactsResult,
 } from "./types";
 
 export type {
+    RemoteAudioExistsInput,
+    RemoteAudioExistsResult,
     UploadDownloadArtifactsInput,
     UploadDownloadArtifactsResult,
 } from "./types";
@@ -169,4 +173,17 @@ export async function uploadDownloadArtifacts(
         });
         throw e;
     }
+}
+
+export async function remoteAudioExists(
+    input: RemoteAudioExistsInput,
+): Promise<RemoteAudioExistsResult> {
+    const config = getWebdavMusicPluginConfig();
+    const client = getWebdavMusicClient(config);
+    const remoteAudioPath = remotePathFor(config.remoteDir, input.audioFilename);
+    const exists = await client.exists(remoteAudioPath);
+    return {
+        remoteAudioPath,
+        exists,
+    };
 }

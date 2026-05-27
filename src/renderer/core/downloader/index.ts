@@ -26,7 +26,10 @@ import { fsUtil } from "@shared/utils/renderer";
 import {
     isWebdavDownloadTargetAvailable,
 } from "@/renderer/core/webdav-download/config";
-import { uploadDownloadArtifacts } from "@/renderer/core/webdav-download/upload";
+import {
+    remoteAudioExists,
+    uploadDownloadArtifacts,
+} from "@/renderer/core/webdav-download/upload";
 import { migrateTrackToWebdavSource } from "@/renderer/core/migrate-track-to-webdav-source";
 import { toast } from "react-toastify";
 import { i18n } from "@/shared/i18n/renderer";
@@ -254,6 +257,34 @@ async function downloadMusicImpl(
         const useWebdav = shouldUseWebdavDownloadDestination();
         const cacheDir = window.path.resolve(downloadBasePath, ".mf-dl-cache");
         const cacheDownloadPath = window.path.resolve(cacheDir, audioFilename);
+
+        if (useWebdav) {
+            try {
+                const { remoteAudioPath, exists } = await remoteAudioExists({
+                    audioFilename,
+                });
+                if (exists) {
+                    await migrateTrackToWebdavSource(musicItem, {
+                        remotePath: remoteAudioPath,
+                        title: musicItem.title,
+                        artist: musicItem.artist,
+                        album: musicItem.album,
+                        duration: musicItem.duration,
+                    });
+                    toast.info(
+                        i18n.t(
+                            "settings.download.toast_webdav_audio_skipped",
+                        ),
+                    );
+                    onStateChange({
+                        state: DownloadState.DONE,
+                    });
+                    return;
+                }
+            } catch {
+                // Fallback to normal flow if pre-check fails.
+            }
+        }
 
         if (!useWebdav) {
             await ensureDirectory(downloadBasePath);
