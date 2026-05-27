@@ -37,7 +37,6 @@ async function autoPullFromRemote(raw: string): Promise<void> {
         });
     });
     clearWebdavPendingPushAfterManualRestore();
-    await MusicSheet.frontend.setupMusicSheets();
 }
 
 /**

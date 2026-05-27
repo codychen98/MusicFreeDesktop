@@ -1,4 +1,3 @@
-import MusicSheet from "@/renderer/core/music-sheet";
 import BackupResume from "@/renderer/core/backup-resume";
 import AppConfig from "@shared/app-config/renderer";
 import {
@@ -93,7 +92,6 @@ export async function restoreMusicSheetsFromWebdav(t: TFunction) {
     });
 
     clearWebdavPendingPushAfterManualRestore();
-    await MusicSheet.frontend.setupMusicSheets();
 }
 
 export async function backupMusicSheetsToWebdavWithToast(t: TFunction) {

@@ -33,6 +33,16 @@ export async function setupMusicSheets() {
 }
 
 /**
+ * After remote full-overwrite restore, sidebar counts update via setupMusicSheets but
+ * open playlist views keep stale musicList until refetched. Hearts can desync too.
+ */
+export async function reloadSheetsAfterRemoteRestore() {
+    await setupMusicSheets();
+    const sheetIds = musicSheetsStore.getValue().map((sheet) => sheet.id);
+    await notifySheetsChanged(sheetIds);
+}
+
+/**
  * 新建歌单
  * @param sheetName 歌单名
  * @returns 新建的歌单信息
@@ -226,8 +236,7 @@ export async function resumeSheetsFullOverwrite(
     sheets: IMusic.IMusicSheetItem[],
 ) {
     await backend.resumeSheetsFullOverwrite(sheets);
-    musicSheetsStore.setValue(backend.getAllSheets());
-    refreshFavoriteState();
+    await reloadSheetsAfterRemoteRestore();
 }
 
 /** 是否是我喜欢的歌单 */
