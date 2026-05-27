@@ -74,6 +74,9 @@ export async function backupMusicSheetsToWebdav(t: TFunction) {
  * Manual restore from WebDAV (Settings or sidebar). Always runs regardless of
  * `pendingPush`; on success clears pending push so auto-sync does not overwrite
  * the server with a pre-restore local snapshot.
+ *
+ * WebDAV restore always full-overwrites local playlists (remote is source of
+ * truth). `backup.resumeBehavior` applies to local file restore only.
  */
 export async function restoreMusicSheetsFromWebdav(t: TFunction) {
     cancelScheduledWebdavUpload();
@@ -84,12 +87,9 @@ export async function restoreMusicSheetsFromWebdav(t: TFunction) {
         throw new Error(t("settings.backup.webdav_backup_file_not_exist"));
     }
 
-    const overwrite =
-        AppConfig.getConfig("backup.resumeBehavior") === "overwrite";
-
-    await BackupResume.resume(resumeData, overwrite, {
+    await BackupResume.resume(resumeData, true, {
         restorePlugins: false,
-        fullSheetOverwrite: overwrite,
+        fullSheetOverwrite: true,
     });
 
     clearWebdavPendingPushAfterManualRestore();
