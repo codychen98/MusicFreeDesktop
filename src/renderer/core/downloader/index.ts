@@ -273,9 +273,6 @@ async function preflightWebdavMissingOnly(
                     album: musicItem.album,
                     duration: musicItem.duration,
                 });
-                toast.info(
-                    i18n.t("settings.download.toast_webdav_audio_skipped"),
-                );
                 continue;
             }
 
