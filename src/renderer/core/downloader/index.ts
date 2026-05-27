@@ -181,7 +181,13 @@ async function startDownload(
         (it) => !isDownloaded(it) && it.platform !== localPluginName,
     );
 
-    const downloadCallbacks = _validMusicItems.map((it) => {
+    // WebDAV destination: preflight first, then only queue missing items.
+    const useWebdav = shouldUseWebdavDownloadDestination();
+    const itemsToQueue = useWebdav
+        ? await preflightWebdavMissingOnly(_validMusicItems)
+        : _validMusicItems;
+
+    const downloadCallbacks = itemsToQueue.map((it) => {
         const pk = getMediaPrimaryKey(it);
         downloadingProgress.set(pk, {
             state: DownloadState.WAITING,
@@ -212,8 +218,75 @@ async function startDownload(
         };
     });
 
-    downloadingMusicStore.setValue((prev) => [...prev, ..._validMusicItems]);
+    downloadingMusicStore.setValue((prev) => [...prev, ...itemsToQueue]);
     downloadingQueue.addAll(downloadCallbacks);
+}
+
+async function preflightWebdavMissingOnly(
+    musicItems: IMusic.IMusicItem[],
+): Promise<IMusic.IMusicItem[]> {
+    const results: IMusic.IMusicItem[] = [];
+
+    for (const musicItem of musicItems) {
+        try {
+            const [defaultQuality, whenQualityMissing] = [
+                AppConfig.getConfig("download.defaultQuality"),
+                AppConfig.getConfig("download.whenQualityMissing"),
+            ];
+            const qualityOrder = getQualityOrder(defaultQuality, whenQualityMissing);
+
+            let mediaSource: IPlugin.IMediaSourceResult | null = null;
+            for (const quality of qualityOrder) {
+                try {
+                    mediaSource = await PluginManager.callPluginDelegateMethod(
+                        musicItem,
+                        "getMediaSource",
+                        musicItem,
+                        quality,
+                    );
+                    if (!mediaSource?.url) {
+                        continue;
+                    }
+                    break;
+                } catch {}
+            }
+
+            if (!mediaSource?.url) {
+                results.push(musicItem);
+                continue;
+            }
+
+            const fileBasename = buildDownloadBasename(musicItem);
+            const ext =
+                mediaSource.url.match(/.*\/.+\.([^./?#]+)/)?.[1] ?? "mp3";
+            const audioFilename = `${fileBasename}.${ext}`;
+
+            const { remoteAudioPath, exists } = await remoteAudioExists({
+                audioFilename,
+            });
+
+            if (exists) {
+                await migrateTrackToWebdavSource(musicItem, {
+                    remotePath: remoteAudioPath,
+                    title: musicItem.title,
+                    artist: musicItem.artist,
+                    album: musicItem.album,
+                    duration: musicItem.duration,
+                });
+                toast.info(
+                    i18n.t("settings.download.toast_webdav_audio_skipped"),
+                );
+                continue;
+            }
+
+            results.push(musicItem);
+        } catch {
+            // Any failure: keep normal behavior (queue item).
+            results.push(musicItem);
+        }
+    }
+
+    return results;
 }
 
 async function downloadMusicImpl(
