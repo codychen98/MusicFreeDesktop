@@ -1,0 +1,184 @@
+import MP4Box from "mp4box";
+
+export interface Fmp4PlaybackHandle {
+    revoke: () => void;
+}
+
+type Mp4TrackInfo = {
+    id: number;
+    codec?: string;
+    audio?: boolean;
+    type?: string;
+};
+
+function appendSourceBuffer(
+    sourceBuffer: SourceBuffer,
+    buffer: ArrayBuffer,
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const runAppend = () => {
+            try {
+                sourceBuffer.appendBuffer(buffer);
+            } catch (e) {
+                reject(e);
+                return;
+            }
+            const onUpdateEnd = () => {
+                sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+                resolve();
+            };
+            sourceBuffer.addEventListener("updateend", onUpdateEnd);
+        };
+
+        if (sourceBuffer.updating) {
+            sourceBuffer.addEventListener("updateend", () => runAppend(), {
+                once: true,
+            });
+        } else {
+            runAppend();
+        }
+    });
+}
+
+function pickAudioTrack(tracks: Mp4TrackInfo[]): Mp4TrackInfo | null {
+    return (
+        tracks.find((t) => t.audio) ??
+        tracks.find((t) => t.type === "audio") ??
+        tracks[0] ??
+        null
+    );
+}
+
+function buildAudioMimeCodec(track: Mp4TrackInfo): string {
+    const codec = track.codec ?? "mp4a.40.2";
+    return `audio/mp4; codecs="${codec}"`;
+}
+
+/**
+ * Feed a fetched fMP4 / .m4s buffer through MSE (same class of files ExoPlayer plays on Android).
+ */
+export async function attachFetchedFmp4ToAudio(
+    audio: HTMLAudioElement,
+    arrayBuffer: ArrayBuffer,
+): Promise<Fmp4PlaybackHandle> {
+    if (typeof MediaSource === "undefined") {
+        throw new Error("MediaSource not supported");
+    }
+
+    const mp4boxfile = MP4Box.createFile();
+    const mediaSource = new MediaSource();
+    const mediaObjectUrl = URL.createObjectURL(mediaSource);
+    audio.src = mediaObjectUrl;
+
+    let sourceBuffer: SourceBuffer | null = null;
+    let revoked = false;
+
+    const revoke = () => {
+        if (revoked) {
+            return;
+        }
+        revoked = true;
+        try {
+            mp4boxfile.stop();
+        } catch {
+            // ignore
+        }
+        URL.revokeObjectURL(mediaObjectUrl);
+        try {
+            if (mediaSource.readyState === "open") {
+                mediaSource.endOfStream();
+            }
+        } catch {
+            // ignore
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        const fail = (error: Error) => {
+            revoke();
+            reject(error);
+        };
+
+        mp4boxfile.onError = (message: string) => {
+            fail(new Error(message));
+        };
+
+        mp4boxfile.onReady = (info) => {
+            if (revoked) {
+                return;
+            }
+
+            if (mediaSource.readyState !== "open") {
+                fail(new Error("MediaSource not open"));
+                return;
+            }
+
+            const audioTrack = pickAudioTrack(info.tracks as Mp4TrackInfo[]);
+            if (!audioTrack) {
+                fail(new Error("No audio track in file"));
+                return;
+            }
+
+            const mime = buildAudioMimeCodec(audioTrack);
+            if (!MediaSource.isTypeSupported(mime)) {
+                fail(new Error(`Unsupported codec: ${mime}`));
+                return;
+            }
+
+            sourceBuffer = mediaSource.addSourceBuffer(mime);
+
+            mp4boxfile.onSegment = (
+                _id,
+                _user,
+                buffer,
+                _sampleNumber,
+                last,
+            ) => {
+                if (revoked || !sourceBuffer) {
+                    return;
+                }
+                void appendSourceBuffer(sourceBuffer, buffer)
+                    .then(() => {
+                        if (
+                            last &&
+                            !revoked &&
+                            mediaSource.readyState === "open"
+                        ) {
+                            try {
+                                mediaSource.endOfStream();
+                            } catch {
+                                // ignore
+                            }
+                        }
+                    })
+                    .catch(fail);
+            };
+
+            mp4boxfile.setSegmentOptions(audioTrack.id, sourceBuffer, {
+                nbSamples: 1_000_000,
+            });
+
+            const initSegs = mp4boxfile.initializeSegmentation();
+
+            void (async () => {
+                try {
+                    for (const seg of initSegs) {
+                        if (revoked || !sourceBuffer) {
+                            return;
+                        }
+                        await appendSourceBuffer(sourceBuffer, seg.buffer);
+                    }
+                    mp4boxfile.start();
+                    resolve({ revoke });
+                } catch (e) {
+                    fail(e as Error);
+                }
+            })();
+        };
+
+        const mp4Buffer = arrayBuffer as ArrayBuffer & { fileStart: number };
+        mp4Buffer.fileStart = 0;
+        mp4boxfile.appendBuffer(mp4Buffer);
+        mp4boxfile.flush();
+    });
+}
