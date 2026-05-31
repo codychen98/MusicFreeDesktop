@@ -1,15 +1,11 @@
-import MP4Box from "mp4box";
+import MP4Box, {
+    type Mp4BoxReadyInfo,
+    type Mp4BoxTrackInfo,
+} from "mp4box";
 
 export interface Fmp4PlaybackHandle {
     revoke: () => void;
 }
-
-type Mp4TrackInfo = {
-    id: number;
-    codec?: string;
-    audio?: boolean;
-    type?: string;
-};
 
 function appendSourceBuffer(
     sourceBuffer: SourceBuffer,
@@ -40,7 +36,7 @@ function appendSourceBuffer(
     });
 }
 
-function pickAudioTrack(tracks: Mp4TrackInfo[]): Mp4TrackInfo | null {
+function pickAudioTrack(tracks: Mp4BoxTrackInfo[]): Mp4BoxTrackInfo | null {
     return (
         tracks.find((t) => t.audio) ??
         tracks.find((t) => t.type === "audio") ??
@@ -49,7 +45,7 @@ function pickAudioTrack(tracks: Mp4TrackInfo[]): Mp4TrackInfo | null {
     );
 }
 
-function buildAudioMimeCodec(track: Mp4TrackInfo): string {
+function buildAudioMimeCodec(track: Mp4BoxTrackInfo): string {
     const codec = track.codec ?? "mp4a.40.2";
     return `audio/mp4; codecs="${codec}"`;
 }
@@ -103,7 +99,7 @@ export async function attachFetchedFmp4ToAudio(
             fail(new Error(message));
         };
 
-        mp4boxfile.onReady = (info) => {
+        mp4boxfile.onReady = (info: Mp4BoxReadyInfo) => {
             if (revoked) {
                 return;
             }
@@ -113,7 +109,7 @@ export async function attachFetchedFmp4ToAudio(
                 return;
             }
 
-            const audioTrack = pickAudioTrack(info.tracks as Mp4TrackInfo[]);
+            const audioTrack = pickAudioTrack(info.tracks);
             if (!audioTrack) {
                 fail(new Error("No audio track in file"));
                 return;
@@ -128,11 +124,11 @@ export async function attachFetchedFmp4ToAudio(
             sourceBuffer = mediaSource.addSourceBuffer(mime);
 
             mp4boxfile.onSegment = (
-                _id,
-                _user,
-                buffer,
-                _sampleNumber,
-                last,
+                _id: number,
+                _user: unknown,
+                buffer: ArrayBuffer,
+                _sampleNumber: number,
+                last: boolean,
             ) => {
                 if (revoked || !sourceBuffer) {
                     return;
