@@ -50,6 +50,87 @@ function buildAudioMimeCodec(track: Mp4BoxTrackInfo): string {
     return `audio/mp4; codecs="${codec}"`;
 }
 
+function setupMp4BoxPlayback(
+    mp4boxfile: ReturnType<typeof MP4Box.createFile>,
+    mediaSource: MediaSource,
+    info: Mp4BoxReadyInfo,
+    fail: (error: Error) => void,
+    resolve: (handle: Fmp4PlaybackHandle) => void,
+    isRevoked: () => boolean,
+): void {
+    let sourceBuffer: SourceBuffer | null = null;
+
+    const audioTrack = pickAudioTrack(info.tracks);
+    if (!audioTrack) {
+        fail(new Error("No audio track in file"));
+        return;
+    }
+
+    const mime = buildAudioMimeCodec(audioTrack);
+    if (!MediaSource.isTypeSupported(mime)) {
+        fail(new Error(`Unsupported codec: ${mime}`));
+        return;
+    }
+
+    sourceBuffer = mediaSource.addSourceBuffer(mime);
+
+    mp4boxfile.onSegment = (
+        _id: number,
+        _user: unknown,
+        buffer: ArrayBuffer,
+        _sampleNumber: number,
+        last: boolean,
+    ) => {
+        if (isRevoked() || !sourceBuffer) {
+            return;
+        }
+        void appendSourceBuffer(sourceBuffer, buffer)
+            .then(() => {
+                if (
+                    last &&
+                    !isRevoked() &&
+                    mediaSource.readyState === "open"
+                ) {
+                    try {
+                        mediaSource.endOfStream();
+                    } catch {
+                        // ignore
+                    }
+                }
+            })
+            .catch(fail);
+    };
+
+    mp4boxfile.setSegmentOptions(audioTrack.id, sourceBuffer, {
+        nbSamples: 1_000_000,
+    });
+
+    const initSegs = mp4boxfile.initializeSegmentation();
+
+    void (async () => {
+        try {
+            for (const seg of initSegs) {
+                if (isRevoked() || !sourceBuffer) {
+                    return;
+                }
+                await appendSourceBuffer(sourceBuffer, seg.buffer);
+            }
+            mp4boxfile.start();
+            resolve({
+                revoke: () => {
+                    try {
+                        mp4boxfile.stop();
+                    } catch {
+                        // ignore
+                    }
+                },
+            });
+        } catch (e) {
+            fail(e as Error);
+        }
+    })();
+}
+
 /**
  * Feed a fetched fMP4 / .m4s buffer through MSE (same class of files ExoPlayer plays on Android).
  */
@@ -66,8 +147,11 @@ export async function attachFetchedFmp4ToAudio(
     const mediaObjectUrl = URL.createObjectURL(mediaSource);
     audio.src = mediaObjectUrl;
 
-    let sourceBuffer: SourceBuffer | null = null;
     let revoked = false;
+    let pendingReady: Mp4BoxReadyInfo | null = null;
+    let sourceOpen = false;
+    let outerResolve: ((handle: Fmp4PlaybackHandle) => void) | null = null;
+    let outerReject: ((error: Error) => void) | null = null;
 
     const revoke = () => {
         if (revoked) {
@@ -89,11 +173,35 @@ export async function attachFetchedFmp4ToAudio(
         }
     };
 
+    const fail = (error: Error) => {
+        revoke();
+        outerReject?.(error);
+    };
+
+    const tryStartPlayback = () => {
+        if (revoked || !pendingReady || !sourceOpen || !outerResolve) {
+            return;
+        }
+        setupMp4BoxPlayback(
+            mp4boxfile,
+            mediaSource,
+            pendingReady,
+            fail,
+            (handle) => {
+                outerResolve?.({
+                    revoke: () => {
+                        handle.revoke();
+                        revoke();
+                    },
+                });
+            },
+            () => revoked,
+        );
+    };
+
     return new Promise((resolve, reject) => {
-        const fail = (error: Error) => {
-            revoke();
-            reject(error);
-        };
+        outerResolve = resolve;
+        outerReject = reject;
 
         mp4boxfile.onError = (message: string) => {
             fail(new Error(message));
@@ -103,74 +211,21 @@ export async function attachFetchedFmp4ToAudio(
             if (revoked) {
                 return;
             }
+            pendingReady = info;
+            tryStartPlayback();
+        };
 
-            if (mediaSource.readyState !== "open") {
-                fail(new Error("MediaSource not open"));
-                return;
-            }
-
-            const audioTrack = pickAudioTrack(info.tracks);
-            if (!audioTrack) {
-                fail(new Error("No audio track in file"));
-                return;
-            }
-
-            const mime = buildAudioMimeCodec(audioTrack);
-            if (!MediaSource.isTypeSupported(mime)) {
-                fail(new Error(`Unsupported codec: ${mime}`));
-                return;
-            }
-
-            sourceBuffer = mediaSource.addSourceBuffer(mime);
-
-            mp4boxfile.onSegment = (
-                _id: number,
-                _user: unknown,
-                buffer: ArrayBuffer,
-                _sampleNumber: number,
-                last: boolean,
-            ) => {
-                if (revoked || !sourceBuffer) {
+        mediaSource.addEventListener(
+            "sourceopen",
+            () => {
+                if (revoked) {
                     return;
                 }
-                void appendSourceBuffer(sourceBuffer, buffer)
-                    .then(() => {
-                        if (
-                            last &&
-                            !revoked &&
-                            mediaSource.readyState === "open"
-                        ) {
-                            try {
-                                mediaSource.endOfStream();
-                            } catch {
-                                // ignore
-                            }
-                        }
-                    })
-                    .catch(fail);
-            };
-
-            mp4boxfile.setSegmentOptions(audioTrack.id, sourceBuffer, {
-                nbSamples: 1_000_000,
-            });
-
-            const initSegs = mp4boxfile.initializeSegmentation();
-
-            void (async () => {
-                try {
-                    for (const seg of initSegs) {
-                        if (revoked || !sourceBuffer) {
-                            return;
-                        }
-                        await appendSourceBuffer(sourceBuffer, seg.buffer);
-                    }
-                    mp4boxfile.start();
-                    resolve({ revoke });
-                } catch (e) {
-                    fail(e as Error);
-                }
-            })();
-        };
+                sourceOpen = true;
+                tryStartPlayback();
+            },
+            { once: true },
+        );
 
         const mp4Buffer = arrayBuffer as ArrayBuffer & { fileStart: number };
         mp4Buffer.fileStart = 0;

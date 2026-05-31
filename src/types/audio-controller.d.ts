@@ -12,8 +12,11 @@ export interface IAudioController {
     // 准备音乐信息
     prepareTrack?(musicItem: IMusic.IMusicItem): void;
 
-    // 设置音源
-    setTrackSource(trackSource: IMusic.IMusicSource, musicItem: IMusic.IMusicItem): void;
+    // 设置音源（异步路径在媒体可播放后 resolve）
+    setTrackSource(
+        trackSource: IMusic.IMusicSource,
+        musicItem: IMusic.IMusicItem,
+    ): Promise<void>;
 
     // 暂停
     pause(): void;

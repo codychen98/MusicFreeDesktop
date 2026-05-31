@@ -270,7 +270,7 @@ class TrackPlayer {
         // 5. fetch music source
         this.fetchMediaSource(currentMusic, defaultQuality).then(({ mediaSource, quality }) => {
             if (this.isCurrentMusic(currentMusic)) {
-                this.setTrack(mediaSource, currentMusic, {
+                void this.setTrack(mediaSource, currentMusic, {
                     seekTo: currentProgress,
                     autoPlay: false,
                 });
@@ -338,7 +338,7 @@ class TrackPlayer {
             }
 
             this.setCurrentQuality(quality);
-            this.setTrack(mediaSource, nextMusicItem, {
+            await this.setTrack(mediaSource, nextMusicItem, {
                 seekTo,
                 autoPlay: true,
             });
@@ -573,7 +573,7 @@ class TrackPlayer {
         if (currentMusic && quality !== this.currentQuality) {
             const { mediaSource, quality: realQuality } = await this.fetchMediaSource(currentMusic, quality);
             if (this.isCurrentMusic(currentMusic)) {
-                this.setTrack(mediaSource, currentMusic, {
+                await this.setTrack(mediaSource, currentMusic, {
                     seekTo: this.progress.currentTime ?? 0,
                     autoPlay: this.playerState === PlayerState.Playing,
                 });
@@ -781,11 +781,24 @@ class TrackPlayer {
         removeUserPreference("currentProgress");
     }
 
-    private setTrack(mediaSource: IPlugin.IMediaSourceResult, musicItem: IMusic.IMusicItem, options: ITrackOptions = {
-        autoPlay: true,
-    }) {
+    private async setTrack(
+        mediaSource: IPlugin.IMediaSourceResult,
+        musicItem: IMusic.IMusicItem,
+        options: ITrackOptions = {
+            autoPlay: true,
+        },
+    ) {
         this.resetProgress();
-        this.audioController.setTrackSource(mediaSource, musicItem);
+
+        try {
+            await this.audioController.setTrackSource(mediaSource, musicItem);
+        } catch {
+            return;
+        }
+
+        if (!this.isCurrentMusic(musicItem)) {
+            return;
+        }
 
         if (options.seekTo >= 0) {
             this.audioController.seekTo(options.seekTo);

@@ -17,6 +17,7 @@ import ControllerBase from "@renderer/core/track-player/controller/controller-ba
 import { ErrorReason } from "@renderer/core/track-player/enum";
 import voidCallback from "@/common/void-callback";
 import { IAudioController } from "@/types/audio-controller";
+import { waitForMediaReady } from "@/renderer/utils/wait-for-media-ready";
 
 class AudioController extends ControllerBase implements IAudioController {
     private audio: HTMLAudioElement;
@@ -140,6 +141,26 @@ class AudioController extends ControllerBase implements IAudioController {
         this.revokeBlobObjectUrl();
     }
 
+    private async tryAttachBlobPlayback(
+        buffer: ArrayBuffer,
+        musicItem: IMusic.IMusicItem,
+        signal: AbortSignal,
+    ): Promise<boolean> {
+        this.revokeDetachedPlayback();
+        const blob = new Blob([buffer], { type: "audio/mp4" });
+        this.blobObjectUrl = URL.createObjectURL(blob);
+        this.audio.src = this.blobObjectUrl;
+
+        try {
+            await waitForMediaReady(this.audio, signal);
+            return isSameMedia(this.musicItem, musicItem);
+        } catch {
+            this.revokeBlobObjectUrl();
+            this.audio.removeAttribute("src");
+            return false;
+        }
+    }
+
     private async setSourceFromFetchedFmp4(
         url: string,
         trackSource: IMusic.IMusicSource,
@@ -171,21 +192,62 @@ class AudioController extends ControllerBase implements IAudioController {
                 return;
             }
 
-            try {
-                this.fmp4PlaybackHandle = await attachFetchedFmp4ToAudio(
-                    this.audio,
-                    buffer,
-                );
-            } catch {
-                const blob = new Blob([buffer], { type: "audio/mp4" });
-                this.blobObjectUrl = URL.createObjectURL(blob);
-                this.audio.src = this.blobObjectUrl;
+            if (await this.tryAttachBlobPlayback(buffer, musicItem, abort.signal)) {
+                return;
             }
+
+            this.fmp4PlaybackHandle = await attachFetchedFmp4ToAudio(
+                this.audio,
+                buffer,
+            );
+            await waitForMediaReady(this.audio, abort.signal);
         } catch (e) {
             if (abort.signal.aborted) {
                 return;
             }
             this.onError?.(ErrorReason.EmptyResource, e as Error);
+            throw e;
+        } finally {
+            if (this.fetchAbort === abort) {
+                this.fetchAbort = null;
+            }
+        }
+    }
+
+    private async setSourceFromFetchedBlob(
+        url: string,
+        trackSource: IMusic.IMusicSource,
+        musicItem: IMusic.IMusicItem,
+    ): Promise<void> {
+        this.destroyHls();
+        this.abortPendingFetch();
+        this.revokeDetachedPlayback();
+
+        const abort = new AbortController();
+        this.fetchAbort = abort;
+
+        try {
+            const res = await fetch(url, {
+                method: "GET",
+                headers: {
+                    ...trackSource.headers,
+                },
+                signal: abort.signal,
+            });
+            const blob = await res.blob();
+            if (abort.signal.aborted || !isSameMedia(this.musicItem, musicItem)) {
+                return;
+            }
+            this.revokeDetachedPlayback();
+            this.blobObjectUrl = URL.createObjectURL(blob);
+            this.audio.src = this.blobObjectUrl;
+            await waitForMediaReady(this.audio, abort.signal);
+        } catch (e) {
+            if (abort.signal.aborted) {
+                return;
+            }
+            this.onError?.(ErrorReason.EmptyResource, e as Error);
+            throw e;
         } finally {
             if (this.fetchAbort === abort) {
                 this.fetchAbort = null;
@@ -269,7 +331,10 @@ class AudioController extends ControllerBase implements IAudioController {
         navigator.mediaSession.playbackState = "none";
     }
 
-    setTrackSource(trackSource: IMusic.IMusicSource, musicItem: IMusic.IMusicItem): void {
+    setTrackSource(
+        trackSource: IMusic.IMusicSource,
+        musicItem: IMusic.IMusicItem,
+    ): Promise<void> {
         this.musicItem = { ...musicItem };
 
         // 1. update metadata
@@ -328,7 +393,7 @@ class AudioController extends ControllerBase implements IAudioController {
 
         if (!url) {
             this.onError(ErrorReason.EmptyResource, new Error("url is empty"));
-            return;
+            return Promise.reject(new Error("url is empty"));
         }
 
         // 3. set real source
@@ -337,36 +402,28 @@ class AudioController extends ControllerBase implements IAudioController {
             if (Hls.isSupported()) {
                 this.initHls();
                 this.hls.loadSource(url);
-            } else {
-                this.onError(ErrorReason.UnsupportedResource);
-                return;
+                return Promise.resolve();
             }
-        } else if (needsFetchedFmp4Playback(trackSource.url)) {
-            void this.setSourceFromFetchedFmp4(url, trackSource, musicItem);
-        } else if (headers) {
-            this.destroyHls();
-            this.abortPendingFetch();
-            this.revokeDetachedPlayback();
-            fetch(url, {
-                method: "GET",
-                headers: {
-                    ...trackSource.headers,
-                },
-            })
-                .then(async (res) => {
-                    const blob = await res.blob();
-                    if (isSameMedia(this.musicItem, musicItem)) {
-                        this.revokeDetachedPlayback();
-                        this.blobObjectUrl = URL.createObjectURL(blob);
-                        this.audio.src = this.blobObjectUrl;
-                    }
-                });
-        } else {
-            this.destroyHls();
-            this.abortPendingFetch();
-            this.revokeDetachedPlayback();
-            this.audio.src = url;
+            this.onError(ErrorReason.UnsupportedResource);
+            return Promise.reject(new Error("HLS is not supported"));
         }
+
+        if (needsFetchedFmp4Playback(trackSource.url, musicItem)) {
+            return this.setSourceFromFetchedFmp4(url, trackSource, musicItem);
+        }
+
+        if (headers) {
+            return this.setSourceFromFetchedBlob(url, trackSource, musicItem);
+        }
+
+        this.destroyHls();
+        this.abortPendingFetch();
+        this.revokeDetachedPlayback();
+        this.audio.src = url;
+        return waitForMediaReady(this.audio).catch((e) => {
+            this.onError?.(ErrorReason.EmptyResource, e as Error);
+            throw e;
+        });
     }
 
     setVolume(volume: number): void {
