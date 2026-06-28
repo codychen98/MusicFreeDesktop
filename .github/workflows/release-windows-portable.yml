@@ -28,6 +28,8 @@ permissions:
 jobs:
   build-and-release:
     runs-on: windows-latest
+    env:
+      GYP_MSVS_VERSION: "2022"
     steps:
       - uses: actions/checkout@v4
 
@@ -46,8 +48,6 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Configure node-gyp for Visual Studio 2022
-        run: npm config set msvs_version 2022
 
       - run: npm ci
 
