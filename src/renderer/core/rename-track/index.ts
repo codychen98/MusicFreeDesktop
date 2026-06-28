@@ -110,7 +110,7 @@ async function updateMusicMetadataInStore(
             throw new RenameTrackError("RENAME_STORE_ROW_MISSING");
         }
 
-        const updated: IMusic.IMusicItem = {
+        const updated = {
             ...row,
             title: updates.title,
             artist: updates.artist,
