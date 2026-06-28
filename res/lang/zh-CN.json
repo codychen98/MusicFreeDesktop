@@ -125,7 +125,14 @@
     "reveal_local_music_in_file_explorer": "打开歌曲所在文件夹",
     "reveal_local_music_in_file_explorer_fail": "打开失败: ",
     "delete_local_downloaded_songs_success": "已删除 {{musicNums}} 首本地歌曲",
-    "delete_local_downloaded_song_success": "已删除本地歌曲 [{{songName}}]"
+    "delete_local_downloaded_song_success": "已删除本地歌曲 [{{songName}}]",
+    "rename_track": "重命名",
+    "rename_track_success": "重命名成功",
+    "rename_track_target_exists": "目标文件名已存在",
+    "rename_track_failed": "重命名失败",
+    "rename_track_invalid_input": "请填写标题和艺术家",
+    "rename_track_webdav_config_incomplete": "WebDAV 未配置完整",
+    "rename_track_loading": "正在重命名..."
   },
   "search_result_page": {
     "search_result_title": "的搜索结果"
@@ -214,7 +221,12 @@
     "skip_this_version": "跳过此版本",
     "scan_local_music": "扫描本地音乐",
     "scan_local_music_hint": "将自动扫描勾选的文件夹 (文件增删实时同步)",
-    "add_folder": "添加文件夹"
+    "add_folder": "添加文件夹",
+    "rename_track": "重命名歌曲",
+    "rename_track_title_label": "标题",
+    "rename_track_title_placeholder": "请输入歌曲标题",
+    "rename_track_artist_label": "艺术家",
+    "rename_track_artist_placeholder": "请输入艺术家"
   },
   "panel": {
     "play_list_song_num": "播放列表 ({{number}}首)",

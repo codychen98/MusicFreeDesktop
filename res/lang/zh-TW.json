@@ -141,7 +141,14 @@
     "reveal_local_music_in_file_explorer_fail": "打開失敗：",
 
     "delete_local_downloaded_songs_success": "已刪除 {{musicNums}} 首本地歌曲",
-    "delete_local_downloaded_song_success": "已刪除本地歌曲 [{{songName}}]"
+    "delete_local_downloaded_song_success": "已刪除本地歌曲 [{{songName}}]",
+    "rename_track": "重新命名",
+    "rename_track_success": "重新命名成功",
+    "rename_track_target_exists": "目標檔名已存在",
+    "rename_track_failed": "重新命名失敗",
+    "rename_track_invalid_input": "請填寫標題和藝人",
+    "rename_track_webdav_config_incomplete": "WebDAV 未完整設定",
+    "rename_track_loading": "正在重新命名..."
   },
 
   "search_result_page": {
@@ -235,7 +242,12 @@
     "skip_this_version": "跳過此版本",
     "scan_local_music": "掃描本地音樂",
     "scan_local_music_hint": "將自動掃描選擇的文件夾（實時同步）",
-    "add_folder": "添加文件夾"
+    "add_folder": "添加文件夾",
+    "rename_track": "重新命名歌曲",
+    "rename_track_title_label": "標題",
+    "rename_track_title_placeholder": "請輸入歌曲標題",
+    "rename_track_artist_label": "藝人",
+    "rename_track_artist_placeholder": "請輸入藝人名稱"
   },
   "panel": {
     "play_list_song_num": "播放清單（{{number}} 首歌曲）",

@@ -4,6 +4,7 @@ import type {
     DeleteWebdavRemoteTrackInput,
     RemoteAudioExistsInput,
     RemoteAudioExistsResult,
+    RenameWebdavRemoteTrackInput,
     UploadDownloadArtifactsInput,
     UploadDownloadArtifactsResult,
 } from "./types";
@@ -28,6 +29,13 @@ const mod = {
     ): Promise<void> =>
         ipcRenderer.invoke(
             "@shared/webdav-music-upload/delete-remote-track",
+            input,
+        ),
+    renameWebdavRemoteTrack: (
+        input: RenameWebdavRemoteTrackInput,
+    ): Promise<void> =>
+        ipcRenderer.invoke(
+            "@shared/webdav-music-upload/rename-remote-track",
             input,
         ),
 };

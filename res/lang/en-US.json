@@ -141,7 +141,14 @@
     "reveal_local_music_in_file_explorer_fail": "Open Failed: ",
 
     "delete_local_downloaded_songs_success": "Deleted {{musicNums}} local songs",
-    "delete_local_downloaded_song_success": "Deleted local song [{{songName}}]"
+    "delete_local_downloaded_song_success": "Deleted local song [{{songName}}]",
+    "rename_track": "Rename",
+    "rename_track_success": "Renamed successfully",
+    "rename_track_target_exists": "A file with this name already exists",
+    "rename_track_failed": "Rename failed",
+    "rename_track_invalid_input": "Title and artist are required",
+    "rename_track_webdav_config_incomplete": "WebDAV is not fully configured",
+    "rename_track_loading": "Renaming..."
   },
 
   "search_result_page": {
@@ -235,7 +242,12 @@
     "skip_this_version": "Skip This Version",
     "scan_local_music": "Scan Local Music",
     "scan_local_music_hint": "Automatically scan selected folders (real-time sync with file changes)",
-    "add_folder": "Add Folder"
+    "add_folder": "Add Folder",
+    "rename_track": "Rename Track",
+    "rename_track_title_label": "Title",
+    "rename_track_title_placeholder": "Enter track title",
+    "rename_track_artist_label": "Artist",
+    "rename_track_artist_placeholder": "Enter artist name"
   },
   "panel": {
     "play_list_song_num": "Playlist ({{number}} songs)",

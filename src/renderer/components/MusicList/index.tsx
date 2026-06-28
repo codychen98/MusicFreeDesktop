@@ -33,6 +33,7 @@ import musicSheetDB from "@/renderer/core/db/music-sheet-db";
 import DragReceiver, { startDrag } from "../DragReceiver";
 import { i18n } from "@/shared/i18n/renderer";
 import isLocalMusic from "@/renderer/utils/is-local-music";
+import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@/renderer/core/webdav-download/config";
 import AppConfig from "@shared/app-config/renderer";
 import { shellUtil } from "@shared/utils/renderer";
 
@@ -222,6 +223,30 @@ export function showMusicContextMenu(
                 : !isLocalMusic(musicItems) && !Downloader.isDownloaded(musicItems),
             onClick() {
                 Downloader.startDownload(musicItems);
+            },
+        },
+        {
+            title: i18n.t("music_list_context_menu.rename_track"),
+            icon: "pencil-square",
+            show:
+                !isArray &&
+                (musicItems.platform === WEBDAV_MUSIC_PLUGIN_PLATFORM ||
+                    Downloader.isDownloaded(musicItems)),
+            async onClick() {
+                if (isArray) {
+                    return;
+                }
+                let realTimeMusicItem = musicItems;
+                try {
+                    realTimeMusicItem =
+                        (await musicSheetDB.musicStore.get([
+                            musicItems.platform,
+                            musicItems.id,
+                        ])) ?? musicItems;
+                } catch {}
+                showModal("RenameMusicTrack", {
+                    musicItem: realTimeMusicItem,
+                });
             },
         },
         {

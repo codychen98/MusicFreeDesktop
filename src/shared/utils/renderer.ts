@@ -10,6 +10,7 @@ interface IMod {
             options?: { recursive?: boolean },
         ) => Promise<void>;
         copyFile: (src: string, dest: string) => Promise<void>;
+        rename: (src: string, dest: string) => Promise<void>;
         isFile: (path: string) => Promise<boolean>;
         isFolder: (path: string) => Promise<boolean>;
         rimraf: typeof rimraf.rimraf;

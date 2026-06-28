@@ -51,11 +51,16 @@ async function copyFile(src: string, dest: string): Promise<void> {
     await fs.copyFile(src, dest);
 }
 
+async function rename(src: string, dest: string): Promise<void> {
+    await fs.rename(src, dest);
+}
+
 const fsUtil = {
     writeFile,
     readFile,
     mkdir,
     copyFile,
+    rename,
     isFile,
     isFolder,
     rimraf,

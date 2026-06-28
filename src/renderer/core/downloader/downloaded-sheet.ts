@@ -200,6 +200,17 @@ export function isDownloaded(musicItem: IMedia.IMediaBase) {
     return musicItem ? downloadedSet.has(getMediaPrimaryKey(musicItem)) : false;
 }
 
+export function updateDownloadedMusicInList(
+    updatedItem: IMusic.IMusicItem,
+): void {
+    if (!isDownloaded(updatedItem)) {
+        return;
+    }
+    downloadedMusicListStore.setValue((prev) =>
+        prev.map((it) => (isSameMedia(it, updatedItem) ? updatedItem : it)),
+    );
+}
+
 export const useDownloadedMusicList = downloadedMusicListStore.useValue;
 
 export function useDownloaded(musicItem: IMedia.IMediaBase) {

@@ -34,3 +34,10 @@ export interface DeleteWebdavRemoteTrackInput {
     /** Full remote audio path (`musicItem.id` for WebDAV rows). */
     remoteAudioPath: string;
 }
+
+export interface RenameWebdavRemoteTrackInput {
+    /** Current full remote audio path (`musicItem.id` for WebDAV rows). */
+    oldRemoteAudioPath: string;
+    /** Destination full remote audio path (same directory, new basename). */
+    newRemoteAudioPath: string;
+}

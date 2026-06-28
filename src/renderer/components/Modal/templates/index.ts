@@ -5,6 +5,7 @@ import ExitConfirm from "./ExitConfirm";
 import ImportMusicSheet from "./ImportMusicSheet";
 import PluginSubscription from "./PluginSubscription";
 import Reconfirm from "./Reconfirm";
+import RenameMusicTrack from "./RenameMusicTrack";
 import SearchLyric from "./SearchLyric";
 import SelectOne from "./SelectOne";
 import SimpleInputWithState from "./SimpleInputWithState";
@@ -20,6 +21,7 @@ export default {
     Sparkles,
     SimpleInputWithState,
     Reconfirm,
+    RenameMusicTrack,
     Update,
     WatchLocalDir,
     SelectOne,
