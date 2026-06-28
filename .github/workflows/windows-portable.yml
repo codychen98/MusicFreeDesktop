@@ -22,6 +22,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      # electron-forge prePackage rebuilds better-sqlite3 via node-gyp (needs cl.exe).
+      - name: Setup MSVC for native module rebuilds
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Configure node-gyp for Visual Studio 2022
+        run: npm config set msvs_version 2022
       - run: npm ci
       - name: Read version
         run: |
