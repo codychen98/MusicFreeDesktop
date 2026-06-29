@@ -1,4 +1,9 @@
 import {
+    getInternalData,
+    isSameMedia,
+    setInternalData,
+} from "@/common/media-util";
+import {
     buildRenamedAudioFilename,
     buildNewLocalAudioPath,
     getAudioBasename,
