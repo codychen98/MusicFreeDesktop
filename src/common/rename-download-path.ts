@@ -1,13 +1,33 @@
-import path from "path";
-
 import { buildDownloadBasename } from "./download-filename";
 import {
     lyricSidecarFilename,
     translationSidecarFilename,
 } from "./webdav-download-path";
 
+function lastPathSeparatorIndex(filePath: string): number {
+    const lastBackslash = filePath.lastIndexOf("\\");
+    const lastSlash = filePath.lastIndexOf("/");
+    return Math.max(lastBackslash, lastSlash);
+}
+
+function getPathDirname(filePath: string): string {
+    const lastSep = lastPathSeparatorIndex(filePath);
+    return lastSep === -1 ? "" : filePath.slice(0, lastSep);
+}
+
+function joinPath(dir: string, filename: string): string {
+    if (!dir) {
+        return filename;
+    }
+    const sep = dir.includes("\\") ? "\\" : "/";
+    return `${dir.replace(/[/\\]+$/, "")}${sep}${filename.replace(/^[/\\]+/, "")}`;
+}
+
 export function getAudioBasename(audioFilenameOrPath: string): string {
-    return path.basename(audioFilenameOrPath);
+    const lastSep = lastPathSeparatorIndex(audioFilenameOrPath);
+    return lastSep === -1
+        ? audioFilenameOrPath
+        : audioFilenameOrPath.slice(lastSep + 1);
 }
 
 export function getAudioExtension(audioFilenameOrPath: string): string {
@@ -28,14 +48,27 @@ export function buildRenamedAudioFilename(
     return `${buildDownloadBasename({ title, artist })}.${ext}`;
 }
 
+export function buildNewLocalAudioPath(
+    currentAudioPath: string,
+    title: string,
+    artist: string,
+): string {
+    const newFilename = buildRenamedAudioFilename(
+        getAudioBasename(currentAudioPath),
+        title,
+        artist,
+    );
+    return joinPath(getPathDirname(currentAudioPath), newFilename);
+}
+
 export function localSidecarPathsForAudio(audioPath: string): {
     lrcPath: string;
     tranLrcPath: string;
 } {
     const audioFilename = getAudioBasename(audioPath);
-    const dir = path.dirname(audioPath);
+    const dir = getPathDirname(audioPath);
     return {
-        lrcPath: path.join(dir, lyricSidecarFilename(audioFilename)),
-        tranLrcPath: path.join(dir, translationSidecarFilename(audioFilename)),
+        lrcPath: joinPath(dir, lyricSidecarFilename(audioFilename)),
+        tranLrcPath: joinPath(dir, translationSidecarFilename(audioFilename)),
     };
 }

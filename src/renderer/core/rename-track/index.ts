@@ -1,12 +1,6 @@
-import path from "path";
-
-import {
-    getInternalData,
-    isSameMedia,
-    setInternalData,
-} from "@/common/media-util";
 import {
     buildRenamedAudioFilename,
+    buildNewLocalAudioPath,
     getAudioBasename,
     localSidecarPathsForAudio,
 } from "@/common/rename-download-path";
@@ -54,19 +48,6 @@ function computeNewRemoteAudioPath(
         artist,
     );
     return remotePathFor(remoteDir, newFilename);
-}
-
-function computeNewLocalAudioPath(
-    currentAudioPath: string,
-    title: string,
-    artist: string,
-): string {
-    const newFilename = buildRenamedAudioFilename(
-        getAudioBasename(currentAudioPath),
-        title,
-        artist,
-    );
-    return path.join(path.dirname(currentAudioPath), newFilename);
 }
 
 async function findSheetIdsContainingTrack(
@@ -200,7 +181,7 @@ async function renameLocalDownloadedTrack(
         return updateMusicMetadataInStore(musicItem, { title, artist });
     }
 
-    const newPath = computeNewLocalAudioPath(currentPath, title, artist);
+    const newPath = buildNewLocalAudioPath(currentPath, title, artist);
     await assertLocalRenameTargetsFree(currentPath, newPath);
 
     const sidecars = localSidecarPathsForAudio(currentPath);
