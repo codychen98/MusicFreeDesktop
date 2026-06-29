@@ -13,6 +13,7 @@ import { showModal } from "@/renderer/components/Modal";
 import SvgAsset from "@/renderer/components/SvgAsset";
 import LyricParser from "@/renderer/utils/lyric-parser";
 import { getLinkedLyric, unlinkLyric } from "@/renderer/core/link-lyric";
+import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@/renderer/core/webdav-download/config";
 import { getMediaPrimaryKey } from "@/common/media-util";
 import { useTranslation } from "react-i18next";
 import { useLyric } from "@renderer/core/track-player/hooks";
@@ -185,16 +186,19 @@ function LyricContextMenu(props: ILyricContextMenuProps) {
     const currentMusicRef = useRef<IMusic.IMusicItem>(
         trackPlayer.currentMusic ?? ({} as any),
     );
+    const isWebdavTrack =
+        currentMusicRef.current?.platform === WEBDAV_MUSIC_PLUGIN_PLATFORM;
 
     useEffect(() => {
-        if (currentMusicRef.current?.platform) {
-            getLinkedLyric(currentMusicRef.current).then((linked) => {
-                if (linked) {
-                    setLinkedLyricInfo(linked);
-                }
-            });
+        if (isWebdavTrack || !currentMusicRef.current?.platform) {
+            return;
         }
-    }, []);
+        getLinkedLyric(currentMusicRef.current).then((linked) => {
+            if (linked) {
+                setLinkedLyricInfo(linked);
+            }
+        });
+    }, [isWebdavTrack]);
 
     function handleFontSize(val: string | number) {
         if (val) {
@@ -346,31 +350,33 @@ function LyricContextMenu(props: ILyricContextMenuProps) {
                 }}
             >
                 <span>
-                    {linkedLyricInfo
+                    {!isWebdavTrack && linkedLyricInfo
                         ? `${t("music_detail.media_lyric_linked")} ${getMediaPrimaryKey(
                             linkedLyricInfo,
                         )}`
                         : t("music_detail.search_lyric")}
                 </span>
             </div>
-            <div
-                className="lyric-ctx-menu--row-container"
-                role="button"
-                data-disabled={!linkedLyricInfo}
-                onClick={async () => {
-                    try {
-                        await unlinkLyric(currentMusicRef.current);
-                        if (trackPlayer.isCurrentMusic(currentMusicRef.current)) {
-                            trackPlayer.fetchCurrentLyric(true);
+            {!isWebdavTrack ? (
+                <div
+                    className="lyric-ctx-menu--row-container"
+                    role="button"
+                    data-disabled={!linkedLyricInfo}
+                    onClick={async () => {
+                        try {
+                            await unlinkLyric(currentMusicRef.current);
+                            if (trackPlayer.isCurrentMusic(currentMusicRef.current)) {
+                                trackPlayer.fetchCurrentLyric(true);
+                            }
+                            toast.success(t("music_detail.toast_media_lyric_unlinked"));
+                        } catch {
+                            // pass
                         }
-                        toast.success(t("music_detail.toast_media_lyric_unlinked"));
-                    } catch {
-                        // pass
-                    }
-                }}
-            >
-                {t("music_detail.unlink_media_lyric")}
-            </div>
+                    }}
+                >
+                    {t("music_detail.unlink_media_lyric")}
+                </div>
+            ) : null}
         </>
     );
 }

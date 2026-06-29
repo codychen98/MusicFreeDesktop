@@ -2,11 +2,13 @@ import { contextBridge, ipcRenderer } from "electron";
 
 import type {
     DeleteWebdavRemoteTrackInput,
+    FetchRemoteSidecarLyricsResult,
     RemoteAudioExistsInput,
     RemoteAudioExistsResult,
     RenameWebdavRemoteTrackInput,
     UploadDownloadArtifactsInput,
     UploadDownloadArtifactsResult,
+    UploadRemoteSidecarLyricsInput,
 } from "./types";
 
 const mod = {
@@ -37,6 +39,20 @@ const mod = {
         ipcRenderer.invoke(
             "@shared/webdav-music-upload/rename-remote-track",
             input,
+        ),
+    uploadRemoteSidecarLyrics: (
+        input: UploadRemoteSidecarLyricsInput,
+    ): Promise<void> =>
+        ipcRenderer.invoke(
+            "@shared/webdav-music-upload/upload-remote-sidecar-lyrics",
+            input,
+        ),
+    fetchRemoteSidecarLyrics: (
+        remoteAudioPath: string,
+    ): Promise<FetchRemoteSidecarLyricsResult> =>
+        ipcRenderer.invoke(
+            "@shared/webdav-music-upload/fetch-remote-sidecar-lyrics",
+            remoteAudioPath,
         ),
 };
 

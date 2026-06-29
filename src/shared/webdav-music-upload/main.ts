@@ -2,12 +2,17 @@ import { ipcMain } from "electron";
 
 import { deleteWebdavRemoteTrack } from "./delete-impl";
 import { renameWebdavRemoteTrack } from "./rename-impl";
+import {
+    fetchRemoteSidecarLyrics,
+    uploadRemoteSidecarLyrics,
+} from "./sidecar-impl";
 import { remoteAudioExists, uploadDownloadArtifacts } from "./upload-impl";
 import type {
     DeleteWebdavRemoteTrackInput,
     RemoteAudioExistsInput,
     RenameWebdavRemoteTrackInput,
     UploadDownloadArtifactsInput,
+    UploadRemoteSidecarLyricsInput,
 } from "./types";
 
 class WebdavMusicUploadMain {
@@ -33,6 +38,16 @@ class WebdavMusicUploadMain {
             "@shared/webdav-music-upload/rename-remote-track",
             async (_evt, input: RenameWebdavRemoteTrackInput) =>
                 renameWebdavRemoteTrack(input),
+        );
+        ipcMain.handle(
+            "@shared/webdav-music-upload/upload-remote-sidecar-lyrics",
+            async (_evt, input: UploadRemoteSidecarLyricsInput) =>
+                uploadRemoteSidecarLyrics(input),
+        );
+        ipcMain.handle(
+            "@shared/webdav-music-upload/fetch-remote-sidecar-lyrics",
+            async (_evt, remoteAudioPath: string) =>
+                fetchRemoteSidecarLyrics(remoteAudioPath),
         );
     }
 }

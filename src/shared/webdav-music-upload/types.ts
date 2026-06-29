@@ -41,3 +41,15 @@ export interface RenameWebdavRemoteTrackInput {
     /** Destination full remote audio path (same directory, new basename). */
     newRemoteAudioPath: string;
 }
+
+export interface UploadRemoteSidecarLyricsInput {
+    /** Full remote audio path (`musicItem.id` for WebDAV rows). */
+    remoteAudioPath: string;
+    rawLrc: string;
+    translation?: string | null;
+}
+
+export interface FetchRemoteSidecarLyricsResult {
+    rawLrc?: string;
+    translation?: string;
+}

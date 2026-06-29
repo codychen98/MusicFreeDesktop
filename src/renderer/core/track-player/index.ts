@@ -27,6 +27,7 @@ import voidCallback from "@/common/void-callback";
 import { delay } from "@/common/time-util";
 import { createUniqueMap } from "@/common/unique-map";
 import { getLinkedLyric } from "@renderer/core/link-lyric";
+import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@/renderer/core/webdav-download/config";
 import { fsUtil } from "@shared/utils/renderer";
 import PluginManager from "@shared/plugin-manager/renderer";
 
@@ -622,8 +623,10 @@ class TrackPlayer {
             return;
         }
         try {
-            // 获取被关联的歌词
-            const linkedLyricItem = await getLinkedLyric(currentMusic);
+            const linkedLyricItem =
+                currentMusic.platform === WEBDAV_MUSIC_PLUGIN_PLATFORM
+                    ? null
+                    : await getLinkedLyric(currentMusic);
             let lyricSource: ILyric.ILyricSource;
 
             if (linkedLyricItem) {

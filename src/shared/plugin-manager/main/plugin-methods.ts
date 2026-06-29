@@ -6,6 +6,8 @@ import { delay } from "@/common/time-util";
 import axios from "axios";
 import { addFileScheme, safeStat } from "@/common/file-util";
 import path from "path";
+import { fetchRemoteSidecarLyrics } from "@shared/webdav-music-upload/sidecar-impl";
+import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@shared/webdav-music-upload/upload-impl";
 
 export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
     private plugin;
@@ -116,6 +118,27 @@ export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
     async getLyric(
         musicItem: IMusic.IMusicItem,
     ): Promise<ILyric.ILyricSource | null> {
+        if (musicItem.platform === WEBDAV_MUSIC_PLUGIN_PLATFORM) {
+            try {
+                const sidecar = await fetchRemoteSidecarLyrics(musicItem.id);
+                if (sidecar.rawLrc || sidecar.translation) {
+                    let rawLrc = sidecar.rawLrc;
+                    let translation = sidecar.translation;
+                    if (!rawLrc) {
+                        rawLrc = translation;
+                        translation = undefined;
+                    }
+                    return {
+                        rawLrc,
+                        translation,
+                    };
+                }
+            } catch {
+                // WebDAV config missing or remote read failed — no lyrics
+            }
+            return null;
+        }
+
         let rawLrc = musicItem.rawLrc;
         let lrcUrl = musicItem.lrc;
         let translation: string;
