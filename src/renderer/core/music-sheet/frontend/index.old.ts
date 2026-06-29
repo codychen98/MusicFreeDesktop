@@ -42,6 +42,15 @@ export async function reloadSheetsAfterRemoteRestore() {
     await notifySheetsChanged(sheetIds);
 }
 
+/** Reload backend sheet cache and refetch open views after a track identity change (rename). */
+export async function reloadSheetsAfterTrackRename(sheetIds: string[]) {
+    await setupMusicSheets();
+    if (!sheetIds.length) {
+        return;
+    }
+    await notifySheetsChanged([...new Set(sheetIds)]);
+}
+
 /**
  * 新建歌单
  * @param sheetName 歌单名

@@ -116,6 +116,7 @@ function getInstalledPluginDelegates() {
 
 const PluginManager = {
     setup,
+    reloadPlugins: mod.reloadPlugins,
     getInstalledPluginDelegates,
     getSortedSupportedPlugin,
     getSupportedPlugin,

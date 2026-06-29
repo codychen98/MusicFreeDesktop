@@ -837,13 +837,37 @@ class TrackPlayer {
             this.setMusicQueue(nextQueue);
         }
         if (this.currentMusic && isSameMedia(oldItem, this.currentMusic)) {
-            currentMusicStore.setValue({
+            const updated = {
                 ...newItem,
                 [timeStampSymbol]: this.currentMusic[timeStampSymbol],
                 [sortIndexSymbol]: this.currentMusic[sortIndexSymbol],
-            });
+            };
+            currentMusicStore.setValue(updated);
+            setUserPreference("currentMusic", updated);
         }
         return count;
+    }
+
+    /** Re-fetch media when a renamed track is currently playing (identity / path changed). */
+    public async refreshAfterTrackRename(
+        oldItem: IMusic.IMusicItem,
+        newItem: IMusic.IMusicItem,
+    ): Promise<void> {
+        if (!this.isCurrentMusic(newItem) && !this.isCurrentMusic(oldItem)) {
+            return;
+        }
+
+        const queueIndex = this.findMusicIndex(newItem);
+        if (queueIndex === -1) {
+            return;
+        }
+
+        const progress = progressStore.getValue()?.currentTime ?? 0;
+        await this.playIndex(queueIndex, {
+            refreshSource: true,
+            restartOnSameMedia: false,
+            seekTo: progress > 0 ? progress : undefined,
+        });
     }
 
 }

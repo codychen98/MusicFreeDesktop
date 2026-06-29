@@ -17,11 +17,12 @@ import {
     getAllSheets,
     queryAllSheets,
 } from "@/renderer/core/music-sheet/backend";
-import { notifySheetsChanged } from "@/renderer/core/music-sheet/frontend";
+import { reloadSheetsAfterTrackRename } from "@/renderer/core/music-sheet/frontend";
 import trackPlayer from "@/renderer/core/track-player";
 import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@/renderer/core/webdav-download/config";
 import { renameWebdavRemoteTrack } from "@/renderer/core/webdav-download/rename";
 import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
+import PluginManager from "@shared/plugin-manager/renderer";
 import { fsUtil } from "@shared/utils/renderer";
 
 export class RenameTrackError extends Error {
@@ -66,6 +67,19 @@ async function findSheetIdsContainingTrack(
             (sheet.musicList ?? []).some((ref) => isSameMedia(ref, musicItem)),
         )
         .map((sheet) => sheet.id);
+}
+
+async function finalizeTrackRename(
+    oldItem: IMusic.IMusicItem,
+    newItem: IMusic.IMusicItem,
+    options?: { reloadWebdavPlugin?: boolean },
+): Promise<void> {
+    const sheetIds = await findSheetIdsContainingTrack(newItem);
+    await reloadSheetsAfterTrackRename(sheetIds);
+    await trackPlayer.refreshAfterTrackRename(oldItem, newItem);
+    if (options?.reloadWebdavPlugin) {
+        await PluginManager.reloadPlugins();
+    }
 }
 
 async function updateDownloadedListItem(
@@ -121,11 +135,10 @@ async function updateMusicMetadataInStore(
         newItem = updated;
     });
 
-    const sheetIds = await findSheetIdsContainingTrack(musicItem);
-    await notifySheetsChanged(sheetIds);
     trackPlayer.replaceMatchingMusic(musicItem, newItem);
     await updateDownloadedListItem(newItem);
     markWebdavLocalMutation();
+    await finalizeTrackRename(musicItem, newItem);
     return newItem;
 }
 
@@ -260,6 +273,9 @@ async function renameWebdavTrack(
         duration: musicItem.duration,
     });
     markWebdavLocalMutation();
+    await finalizeTrackRename(musicItem, result.newItem, {
+        reloadWebdavPlugin: true,
+    });
     return result.newItem;
 }
 
