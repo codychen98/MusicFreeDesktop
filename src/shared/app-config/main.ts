@@ -176,12 +176,14 @@ class AppConfig {
                     ..._defaultAppConfig,
                     ...this.config,
                 };
+                const configRecord = this.config as Record<string, unknown>;
+                const legacyShowOnStartup = configRecord["lyric.showOnStartup"];
                 if (
-                    this.config["lyric.showOnStartup"] !== undefined
+                    legacyShowOnStartup !== undefined
                     && this.config["lyric.hideOnStartup"] === undefined
                 ) {
-                    this.config["lyric.hideOnStartup"] = !this.config["lyric.showOnStartup"];
-                    delete this.config["lyric.showOnStartup"];
+                    this.config["lyric.hideOnStartup"] = !legacyShowOnStartup;
+                    delete configRecord["lyric.showOnStartup"];
                 }
             }
         } catch (e) {
