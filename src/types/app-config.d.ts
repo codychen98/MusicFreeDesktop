@@ -27,6 +27,8 @@ interface _IAppConfig {
     "lyric.enableStatusBarLyric": boolean;
     /** 显示桌面歌词 */
     "lyric.enableDesktopLyric": boolean;
+    /** 启动时隐藏桌面歌词 */
+    "lyric.hideOnStartup": boolean;
     /** 桌面歌词置顶 */
     "lyric.alwaysOnTop": boolean;
     /** 锁定桌面歌词 */

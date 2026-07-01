@@ -176,6 +176,13 @@ class AppConfig {
                     ..._defaultAppConfig,
                     ...this.config,
                 };
+                if (
+                    this.config["lyric.showOnStartup"] !== undefined
+                    && this.config["lyric.hideOnStartup"] === undefined
+                ) {
+                    this.config["lyric.hideOnStartup"] = !this.config["lyric.showOnStartup"];
+                    delete this.config["lyric.showOnStartup"];
+                }
             }
         } catch (e) {
             if (e.message === "Unexpected end of JSON input" || e.code === "EISDIR") {

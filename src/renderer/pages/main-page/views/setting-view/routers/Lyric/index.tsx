@@ -30,6 +30,10 @@ export default function Lyric() {
                     appWindowUtil.setLyricWindow(checked);
                 }}
             ></CheckBoxSettingItem>
+            <CheckBoxSettingItem
+                label={t("settings.lyric.hide_on_startup")}
+                keyPath="lyric.hideOnStartup"
+            ></CheckBoxSettingItem>
             {/* <CheckBoxSettingItem
         label="置顶桌面歌词"
         checked={data.alwaysOnTop}

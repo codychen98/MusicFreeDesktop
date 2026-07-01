@@ -193,8 +193,9 @@ async function bootstrap() {
     /** 一些初始化设置 */
     // 初始化桌面歌词
     const desktopLyricEnabled = AppConfig.getConfig("lyric.enableDesktopLyric");
+    const hideLyricOnStartup = AppConfig.getConfig("lyric.hideOnStartup");
 
-    if (desktopLyricEnabled) {
+    if (desktopLyricEnabled && !hideLyricOnStartup) {
         windowManager.showLyricWindow();
     }
 
