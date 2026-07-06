@@ -12,7 +12,7 @@ function trim(value: string | undefined): string {
     return value?.trim() ?? "";
 }
 
-function isWebdavCredentialsComplete(
+export function isWebdavCredentialsComplete(
     webdav: Partial<WebdavCredentials> | undefined,
 ): webdav is WebdavCredentials {
     if (!webdav) {
@@ -23,7 +23,7 @@ function isWebdavCredentialsComplete(
     );
 }
 
-function isPcloudCredentialsComplete(
+export function isPcloudCredentialsComplete(
     pcloud: RemoteStorageCredentials["pcloud"],
 ): pcloud is NonNullable<RemoteStorageCredentials["pcloud"]> & {
     hostname: string;
@@ -56,10 +56,10 @@ export function resolveRemoteTransport(
     return null;
 }
 
-export function createRemoteStorageClient(
+export function createRemoteStorageClientWithTransport(
     credentials: RemoteStorageCredentials,
+    transport: RemoteTransport,
 ): RemoteStorageClient {
-    const transport = resolveRemoteTransport(credentials);
     if (transport === "pcloud") {
         const { createPcloudRemoteStorageFromCredentials } =
             // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -81,6 +81,16 @@ export function createRemoteStorageClient(
         });
     }
     throw new RemoteCredentialsIncompleteError();
+}
+
+export function createRemoteStorageClient(
+    credentials: RemoteStorageCredentials,
+): RemoteStorageClient {
+    const transport = resolveRemoteTransport(credentials);
+    if (!transport) {
+        throw new RemoteCredentialsIncompleteError();
+    }
+    return createRemoteStorageClientWithTransport(credentials, transport);
 }
 
 export function shouldUseWebdavPlaybackFallback(

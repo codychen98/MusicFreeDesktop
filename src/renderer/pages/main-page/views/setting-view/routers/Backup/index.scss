@@ -28,6 +28,20 @@
       background-color: color-mix(in srgb, var(--primaryColor) 12%, transparent);
     }
 
+    &[data-transport="checking"] {
+      opacity: 0.85;
+    }
+
+    &[data-transport="both_offline"],
+    &[data-transport="offline"] {
+      border-color: color-mix(in srgb, var(--dangerColor) 55%, transparent);
+      background-color: color-mix(in srgb, var(--dangerColor) 10%, transparent);
+
+      .remote-backup-transport-status-value {
+        color: var(--dangerColor);
+      }
+    }
+
     &[data-transport="none"] {
       opacity: 0.8;
     }

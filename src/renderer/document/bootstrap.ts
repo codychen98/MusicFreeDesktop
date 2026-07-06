@@ -18,6 +18,7 @@ import { IAppState } from "@shared/message-bus/type";
 import MusicDetail from "@renderer/components/MusicDetail";
 import shortCut from "@shared/short-cut/renderer";
 import { setupWebdavAutoSync } from "@/renderer/core/webdav-sync";
+import { setupVerifiedRemoteTransport } from "@/renderer/core/verified-remote-transport/setup";
 
 
 setAutoFreeze(false);
@@ -27,6 +28,7 @@ export default async function () {
         AppConfig.setup(),
         PluginManager.setup(),
     ]);
+    await setupVerifiedRemoteTransport();
     setupWebdavAutoSync();
     await Promise.all([
         MusicSheet.frontend.setupMusicSheets(),

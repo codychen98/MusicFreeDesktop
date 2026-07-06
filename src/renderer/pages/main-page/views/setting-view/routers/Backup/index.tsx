@@ -1,4 +1,5 @@
 import "./index.scss";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import RadioGroupSettingItem from "../../components/RadioGroupSettingItem";
 import InputSettingItem from "../../components/InputSettingItem";
@@ -13,17 +14,42 @@ import AppConfig from "@shared/app-config/renderer";
 import useAppConfig from "@/hooks/useAppConfig";
 import { dialogUtil, fsUtil } from "@shared/utils/renderer";
 import {
+    getVerifiedRemoteTransportStatus,
+    subscribeVerifiedRemoteTransport,
+    type VerifiedRemoteTransportViewStatus,
+} from "@shared/remote-storage/verified-remote-transport-store";
+import {
     getRemoteMusicPath,
-    getRemoteStorageCredentialsFromConfig,
     isPcloudTokenFieldPresentButInvalidInConfig,
     isRemoteCredentialsCompleteInConfig,
 } from "@shared/remote-storage/remote-config";
-import { resolveRemoteTransport } from "@shared/remote-storage/resolve";
 
 const PCLOUD_HOSTNAME_OPTIONS = [
     "api.pcloud.com",
     "eapi.pcloud.com",
 ] as const;
+
+type TransportBannerStatus = VerifiedRemoteTransportViewStatus;
+
+function renderTransportStatusValue(
+    status: TransportBannerStatus,
+    t: (key: string) => string,
+): string {
+    switch (status) {
+        case "checking":
+            return t("settings.backup.remote_transport_status_checking");
+        case "pcloud":
+            return t("settings.backup.remote_transport_status_pcloud");
+        case "webdav":
+            return t("settings.backup.remote_transport_status_webdav");
+        case "both_offline":
+            return t("settings.backup.remote_transport_status_both_offline");
+        case "offline":
+            return t("settings.backup.remote_transport_status_offline");
+        default:
+            return t("settings.backup.remote_transport_status_none");
+    }
+}
 
 export default function Backup() {
     const { t } = useTranslation();
@@ -36,13 +62,16 @@ export default function Backup() {
     useAppConfig("backup.remote.musicPath");
 
     const config = AppConfig.getAllConfig();
-    const credentials = getRemoteStorageCredentialsFromConfig(config);
-    const activeTransport = resolveRemoteTransport(credentials);
+    const [verifiedStatus, setVerifiedStatus] = useState<TransportBannerStatus>(
+        getVerifiedRemoteTransportStatus(),
+    );
     const remoteCredentialsComplete =
         isRemoteCredentialsCompleteInConfig(config);
     const pcloudTokenInvalid =
         isPcloudTokenFieldPresentButInvalidInConfig(config);
     const musicPathSet = Boolean(getRemoteMusicPath(config));
+
+    useEffect(() => subscribeVerifiedRemoteTransport(setVerifiedStatus), []);
 
     function onBackupClick() {
         return backupMusicSheetsToWebdavWithToast(t);
@@ -136,17 +165,13 @@ export default function Backup() {
             <div className="remote-backup-container">
                 <div
                     className="remote-backup-transport-status"
-                    data-transport={activeTransport ?? "none"}
+                    data-transport={verifiedStatus}
                 >
                     <span className="remote-backup-transport-status-label">
                         {t("settings.backup.remote_transport_status_label")}
                     </span>
                     <span className="remote-backup-transport-status-value">
-                        {activeTransport === "pcloud"
-                            ? t("settings.backup.remote_transport_status_pcloud")
-                            : activeTransport === "webdav"
-                                ? t("settings.backup.remote_transport_status_webdav")
-                                : t("settings.backup.remote_transport_status_none")}
+                        {renderTransportStatusValue(verifiedStatus, t)}
                     </span>
                 </div>
                 <div className="remote-backup-subsection-label">

@@ -5,9 +5,17 @@ import {
     getRemotePendingPush,
     isRemoteCredentialsCompleteInConfig,
 } from "@shared/remote-storage/remote-config";
+import {
+    getVerifiedRemoteTransportStatus,
+    isVerifiedRemoteTransportOnline,
+} from "@shared/remote-storage/verified-remote-transport-store";
 
 export function isRemoteCredentialsComplete(): boolean {
-    return isRemoteCredentialsCompleteInConfig(AppConfig.getAllConfig());
+    const verifiedStatus = getVerifiedRemoteTransportStatus();
+    if (verifiedStatus === "checking") {
+        return isRemoteCredentialsCompleteInConfig(AppConfig.getAllConfig());
+    }
+    return isVerifiedRemoteTransportOnline(verifiedStatus);
 }
 
 export function isRemoteAutoSyncEnabled(): boolean {

@@ -10,9 +10,15 @@ import {
     getWebdavRootPath,
     isRemoteCredentialsCompleteInConfig,
 } from "@shared/remote-storage/remote-config";
-import { createRemoteStorageClient } from "@shared/remote-storage/resolve";
+import {
+    createRemoteStorageClientWithTransport,
+} from "@shared/remote-storage/resolve";
 import { getRemoteBackupPaths } from "@shared/remote-storage/remote-paths";
-import { RemoteCredentialsIncompleteError } from "@shared/remote-storage/types";
+import {
+    RemoteCredentialsIncompleteError,
+    RemoteTransportOfflineError,
+} from "@shared/remote-storage/types";
+import { awaitVerifiedRemoteTransport } from "@shared/remote-storage/verified-remote-transport-store";
 import type { TFunction } from "i18next";
 import { toast } from "react-toastify";
 
@@ -35,14 +41,17 @@ export class WebdavCredentialsIncompleteError extends RemoteCredentialsIncomplet
     }
 }
 
-function createRemoteBackupClient() {
+async function createRemoteBackupClient() {
     const config = AppConfig.getAllConfig();
+    const credentials = getRemoteStorageCredentialsFromConfig(config);
     if (!isRemoteCredentialsCompleteInConfig(config)) {
         throw new RemoteCredentialsIncompleteError();
     }
-    return createRemoteStorageClient(
-        getRemoteStorageCredentialsFromConfig(config),
-    );
+    const transport = await awaitVerifiedRemoteTransport(credentials);
+    if (!transport) {
+        throw new RemoteTransportOfflineError();
+    }
+    return createRemoteStorageClientWithTransport(credentials, transport);
 }
 
 export async function fetchRemoteBackupRaw(): Promise<string | null> {
@@ -116,6 +125,10 @@ export async function backupMusicSheetsToWebdavWithToast(t: TFunction) {
             toast.error(t("settings.backup.webdav_data_not_complete"));
             return;
         }
+        if (error instanceof RemoteTransportOfflineError) {
+            toast.error(t("settings.backup.remote_transport_offline"));
+            return;
+        }
         toast.error(
             t("settings.backup.backup_fail", {
                 reason: getErrorReason(error),
@@ -134,6 +147,10 @@ export async function restoreMusicSheetsFromWebdavWithToast(t: TFunction) {
             || error instanceof WebdavCredentialsIncompleteError
         ) {
             toast.error(t("settings.backup.webdav_data_not_complete"));
+            return;
+        }
+        if (error instanceof RemoteTransportOfflineError) {
+            toast.error(t("settings.backup.remote_transport_offline"));
             return;
         }
         toast.error(

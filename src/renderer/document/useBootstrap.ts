@@ -6,6 +6,7 @@ import logger from "@shared/logger/renderer";
 import AppConfig from "@shared/app-config/renderer";
 import messageBus from "@shared/message-bus/renderer/main";
 import { runWebdavBootstrapSync } from "@/renderer/core/webdav-sync";
+import { awaitVerifiedRemoteTransportProbeIdle } from "@shared/remote-storage/verified-remote-transport-store";
 
 let webdavBootstrapSyncStarted = false;
 
@@ -28,7 +29,10 @@ export default function useBootstrap() {
 
         if (!webdavBootstrapSyncStarted) {
             webdavBootstrapSyncStarted = true;
-            void runWebdavBootstrapSync();
+            void (async () => {
+                await awaitVerifiedRemoteTransportProbeIdle();
+                await runWebdavBootstrapSync();
+            })();
         }
     }, []);
 }

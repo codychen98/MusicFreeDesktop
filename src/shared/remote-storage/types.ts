@@ -69,3 +69,10 @@ export class RemoteCredentialsIncompleteError extends Error {
         this.name = "RemoteCredentialsIncompleteError";
     }
 }
+
+export class RemoteTransportOfflineError extends Error {
+    constructor() {
+        super("REMOTE_TRANSPORT_OFFLINE");
+        this.name = "RemoteTransportOfflineError";
+    }
+}
