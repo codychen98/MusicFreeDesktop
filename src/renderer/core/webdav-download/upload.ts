@@ -12,7 +12,10 @@ export type {
     UploadDownloadArtifactsResult,
 };
 
-export { WebdavMusicPluginConfigIncompleteError } from "@shared/webdav-music-upload/types";
+export {
+    RemoteMusicConfigIncompleteError,
+    WebdavMusicPluginConfigIncompleteError,
+} from "@shared/webdav-music-upload/types";
 
 interface IWebdavMusicUploadBridge {
     uploadDownloadArtifacts: (

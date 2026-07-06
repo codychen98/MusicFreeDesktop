@@ -31,6 +31,11 @@ const _defaultAppConfig: IAppConfig =  {
     "backup.resumeBehavior": "append",
     "backup.webdav.autoSync": false,
     "backup.webdav.pendingPush": false,
+    "backup.remote.musicPath": "",
+    "backup.remote.pcloud.hostname": "api.pcloud.com",
+    "backup.remote.pcloud.tokenJson": "",
+    "backup.remote.autoSync": false,
+    "backup.remote.pendingPush": false,
     "normal.language": "zh-CN",
 };
 

@@ -1,5 +1,10 @@
 import AppConfig from "@shared/app-config/renderer";
-import PluginManager from "@shared/plugin-manager/renderer";
+import {
+    getRemoteMusicPath,
+    getRemoteStorageCredentialsFromConfig,
+    isRemoteMusicAvailableInConfig,
+} from "@shared/remote-storage/remote-config";
+import { resolveRemoteTransport } from "@shared/remote-storage/resolve";
 
 import { resolveFirstSearchPathSegment } from "@/common/webdav-download-path";
 
@@ -9,28 +14,38 @@ export const WEBDAV_MUSIC_PLUGIN_PLATFORM = "WebDAV" as const;
 
 export type DownloadDestination = "local" | "webdav";
 
-export function getWebdavMusicPluginUserVariables(): Record<string, string> {
-    const meta = AppConfig.getConfig("private.pluginMeta") ?? {};
-    return meta[WEBDAV_MUSIC_PLUGIN_PLATFORM]?.userVariables ?? {};
+export function isRemoteMusicAvailable(): boolean {
+    return isRemoteMusicAvailableInConfig(AppConfig.getAllConfig());
 }
 
-export function isWebdavMusicPluginInstalled(): boolean {
-    return Boolean(
-        PluginManager.getPluginByPlatform(WEBDAV_MUSIC_PLUGIN_PLATFORM),
-    );
+export function isRemoteDownloadTargetAvailable(): boolean {
+    return isRemoteMusicAvailable();
 }
 
 export function isWebdavDownloadTargetAvailable(): boolean {
-    if (!isWebdavMusicPluginInstalled()) {
-        return false;
-    }
-    const vars = getWebdavMusicPluginUserVariables();
-    return Boolean(
-        vars.url?.trim() &&
-            vars.username?.trim() &&
-            vars.password?.trim() &&
-            vars.searchPath?.trim(),
-    );
+    return isRemoteMusicAvailable();
+}
+
+export function getRemoteDownloadTargetSummary(): {
+    available: boolean;
+    searchPathSegment: string;
+    url: string;
+} {
+    const config = AppConfig.getAllConfig();
+    const musicPath = getRemoteMusicPath(config);
+    const creds = getRemoteStorageCredentialsFromConfig(config);
+    const transport = resolveRemoteTransport(creds);
+    const url =
+        transport === "webdav"
+            ? (creds.webdav?.url?.trim() ?? "")
+            : transport === "pcloud"
+                ? (creds.pcloud?.hostname?.trim() ?? "")
+                : "";
+    return {
+        available: isRemoteMusicAvailableInConfig(config),
+        searchPathSegment: resolveFirstSearchPathSegment(musicPath),
+        url,
+    };
 }
 
 export function getWebdavDownloadTargetSummary(): {
@@ -38,10 +53,5 @@ export function getWebdavDownloadTargetSummary(): {
     searchPathSegment: string;
     url: string;
 } {
-    const vars = getWebdavMusicPluginUserVariables();
-    return {
-        available: isWebdavDownloadTargetAvailable(),
-        searchPathSegment: resolveFirstSearchPathSegment(vars.searchPath),
-        url: vars.url?.trim() ?? "",
-    };
+    return getRemoteDownloadTargetSummary();
 }

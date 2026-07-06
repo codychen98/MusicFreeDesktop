@@ -16,4 +16,18 @@
   & tr {
     position: relative;
   }
+
+  & .plugin-table--platform-cell {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    max-width: 100%;
+  }
+
+  & .plugin-table--superseded-badge {
+    font-size: 0.75rem;
+    color: var(--secondaryTextColor, #888);
+    white-space: normal;
+    line-height: 1.2;
+  }
 }

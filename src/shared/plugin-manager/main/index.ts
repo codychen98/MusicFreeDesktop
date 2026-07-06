@@ -6,8 +6,14 @@ import { rimraf } from "rimraf";
 import _axios from "axios";
 import https from "https";
 import voidCallback from "@/common/void-callback";
-import { localPluginHash, localPluginName } from "@/common/constant";
+import {
+    localPluginHash,
+    localPluginName,
+    remoteMusicPluginHash,
+    remoteMusicPluginName,
+} from "@/common/constant";
 import localPlugin from "./internal-plugins/local-plugin";
+import remoteMusicPlugin from "./internal-plugins/remote-music-plugin";
 import { addRandomHash } from "@/common/normalize-util";
 import { IWindowManager } from "@/types/main/window-manager";
 import AppConfig from "@shared/app-config/main";
@@ -42,23 +48,37 @@ class PluginManager {
     }
 
     public set plugins(newPlugins: Plugin[]) {
-        this._plugins = newPlugins;
-        this.clonedPlugins = newPlugins.map((p) => {
-            const sPlugin: IPlugin.IPluginDelegate = {} as any;
-            sPlugin.supportedMethod = [];
-            for (const k in p.instance) {
+        const installedPlugins = newPlugins.filter(
+            (plugin) => plugin.name !== remoteMusicPluginName,
+        );
+        this._plugins = installedPlugins;
+        const supersededWebdavPlugins = newPlugins.filter(
+            (plugin) =>
+                plugin.name === remoteMusicPluginName
+                && plugin.hash !== remoteMusicPluginHash,
+        );
+        this.clonedPlugins = [
+            remoteMusicPlugin,
+            ...supersededWebdavPlugins,
+            ...installedPlugins,
+        ].map((p) => this.clonePluginDelegate(p));
+    }
+
+    private clonePluginDelegate(p: Plugin): IPlugin.IPluginDelegate {
+        const sPlugin: IPlugin.IPluginDelegate = {} as IPlugin.IPluginDelegate;
+        sPlugin.supportedMethod = [];
+        for (const k in p.instance) {
+            // @ts-ignore
+            if (typeof p.instance[k] === "function") {
+                sPlugin.supportedMethod.push(k);
+            } else {
                 // @ts-ignore
-                if (typeof p.instance[k] === "function") {
-                    sPlugin.supportedMethod.push(k);
-                } else {
-                    // @ts-ignore
-                    sPlugin[k] = p.instance[k];
-                }
+                sPlugin[k] = p.instance[k];
             }
-            sPlugin.hash = p.hash;
-            sPlugin.path = p.path;
-            return JSON.parse(JSON.stringify(sPlugin));
-        });
+        }
+        sPlugin.hash = p.hash;
+        sPlugin.path = p.path;
+        return JSON.parse(JSON.stringify(sPlugin));
     }
 
     private windowManager: IWindowManager;
@@ -140,13 +160,21 @@ class PluginManager {
         args,
     }: ICallPluginMethodParams<keyof IPlugin.IPluginInstanceMethods>,
     ) {
-        let plugin: Plugin;
-        if (hash === localPluginHash || platform === localPluginName) {
+        let plugin: Plugin | undefined;
+        if (
+            platform === remoteMusicPluginName
+            || hash === remoteMusicPluginHash
+        ) {
+            plugin = remoteMusicPlugin;
+        } else if (hash === localPluginHash || platform === localPluginName) {
             plugin = localPlugin;
         } else if (hash) {
             plugin = this.plugins.find((item) => item.hash === hash);
         } else if (platform) {
             plugin = this.plugins.find((item) => item.name === platform);
+        }
+        if (plugin?.name === remoteMusicPluginName && plugin !== remoteMusicPlugin) {
+            plugin = remoteMusicPlugin;
         }
         if (!plugin) {
             return null;

@@ -1,38 +1,68 @@
 import AppConfig from "@shared/app-config/renderer";
+import {
+    getRemoteAutoSync,
+    getRemoteLastSuccessfulPushAt as readRemoteLastSuccessfulPushAt,
+    getRemotePendingPush,
+    isRemoteCredentialsCompleteInConfig,
+} from "@shared/remote-storage/remote-config";
 
-export function isWebdavCredentialsComplete(): boolean {
-    const url = AppConfig.getConfig("backup.webdav.url");
-    const username = AppConfig.getConfig("backup.webdav.username");
-    const password = AppConfig.getConfig("backup.webdav.password");
-    return Boolean(url && username && password);
+export function isRemoteCredentialsComplete(): boolean {
+    return isRemoteCredentialsCompleteInConfig(AppConfig.getAllConfig());
 }
 
-export function isWebdavAutoSyncEnabled(): boolean {
-    return AppConfig.getConfig("backup.webdav.autoSync") === true;
+export function isRemoteAutoSyncEnabled(): boolean {
+    return getRemoteAutoSync(AppConfig.getAllConfig());
 }
 
-export function isWebdavPendingPush(): boolean {
-    return AppConfig.getConfig("backup.webdav.pendingPush") === true;
+export function isRemotePendingPush(): boolean {
+    return getRemotePendingPush(AppConfig.getAllConfig());
 }
 
-export function setWebdavPendingPush(value: boolean): void {
-    AppConfig.setConfig({ "backup.webdav.pendingPush": value });
+export function setRemotePendingPush(value: boolean): void {
+    AppConfig.setConfig({ "backup.remote.pendingPush": value });
 }
 
-export function setWebdavLastSuccessfulPushAt(timestampMs: number): void {
-    AppConfig.setConfig({ "backup.webdav.lastSuccessfulPushAt": timestampMs });
+export function setRemoteLastSuccessfulPushAt(timestampMs: number): void {
+    AppConfig.setConfig({
+        "backup.remote.lastSuccessfulPushAt": timestampMs,
+    });
 }
 
-export function getWebdavLastSuccessfulPushAt(): number | null | undefined {
-    return AppConfig.getConfig("backup.webdav.lastSuccessfulPushAt");
+export function getRemoteLastSuccessfulPushAt(): number | null | undefined {
+    return readRemoteLastSuccessfulPushAt(AppConfig.getAllConfig());
 }
 
-export function recordWebdavUploadSuccess(): void {
-    setWebdavPendingPush(false);
-    setWebdavLastSuccessfulPushAt(Date.now());
+export function recordRemoteUploadSuccess(): void {
+    setRemotePendingPush(false);
+    setRemoteLastSuccessfulPushAt(Date.now());
 }
 
-/** After explicit Restore from WebDAV — local now matches remote; do not auto-push stale state. */
-export function clearWebdavPendingPushAfterManualRestore(): void {
-    setWebdavPendingPush(false);
+/** After explicit Restore from remote — local now matches remote; do not auto-push stale state. */
+export function clearRemotePendingPushAfterManualRestore(): void {
+    setRemotePendingPush(false);
 }
+
+/** @deprecated Use `isRemoteCredentialsComplete` */
+export const isWebdavCredentialsComplete = isRemoteCredentialsComplete;
+
+/** @deprecated Use `isRemoteAutoSyncEnabled` */
+export const isWebdavAutoSyncEnabled = isRemoteAutoSyncEnabled;
+
+/** @deprecated Use `isRemotePendingPush` */
+export const isWebdavPendingPush = isRemotePendingPush;
+
+/** @deprecated Use `setRemotePendingPush` */
+export const setWebdavPendingPush = setRemotePendingPush;
+
+/** @deprecated Use `setRemoteLastSuccessfulPushAt` */
+export const setWebdavLastSuccessfulPushAt = setRemoteLastSuccessfulPushAt;
+
+/** @deprecated Use `getRemoteLastSuccessfulPushAt` */
+export const getWebdavLastSuccessfulPushAt = getRemoteLastSuccessfulPushAt;
+
+/** @deprecated Use `recordRemoteUploadSuccess` */
+export const recordWebdavUploadSuccess = recordRemoteUploadSuccess;
+
+/** @deprecated Use `clearRemotePendingPushAfterManualRestore` */
+export const clearWebdavPendingPushAfterManualRestore =
+    clearRemotePendingPushAfterManualRestore;

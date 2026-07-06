@@ -17,6 +17,8 @@ export const musicRefSymbol = "$$ref";
 export const localFilePathSymbol = Symbol.for("local-file-path");
 export const localPluginName = "本地";
 export const localPluginHash = "本地";
+export const remoteMusicPluginName = "WebDAV";
+export const remoteMusicPluginHash = "WebDAV";
 
 export const supportedMediaType = [
     "music",

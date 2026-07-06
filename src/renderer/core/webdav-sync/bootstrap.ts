@@ -8,25 +8,25 @@ import { parseBackupPayload } from "@/renderer/core/backup-resume/types";
 import { fetchRemoteBackupRaw } from "@/renderer/core/webdav-backup";
 import logger from "@shared/logger/renderer";
 import {
-    clearWebdavPendingPushAfterManualRestore,
-    isWebdavAutoSyncEnabled,
-    isWebdavCredentialsComplete,
-    isWebdavPendingPush,
+    clearRemotePendingPushAfterManualRestore,
+    isRemoteAutoSyncEnabled,
+    isRemoteCredentialsComplete,
+    isRemotePendingPush,
 } from "./config";
 import { confirmEmptyRemoteOverwrite } from "./empty-remote-dialog";
-import { flushWebdavUpload, runWithoutWebdavSyncNotify } from "./upload";
+import { flushRemoteUpload, runWithoutWebdavSyncNotify } from "./upload";
 
-const WEBDAV_SYNC_DEBUG_KEY = "webdavSyncDebug";
+const REMOTE_SYNC_DEBUG_KEY = "webdavSyncDebug";
 
-function webdavSyncLog(message: string, detail?: unknown) {
-    if (localStorage.getItem(WEBDAV_SYNC_DEBUG_KEY) !== "1") {
+function remoteSyncLog(message: string, detail?: unknown) {
+    if (localStorage.getItem(REMOTE_SYNC_DEBUG_KEY) !== "1") {
         return;
     }
     if (detail !== undefined) {
-        logger.logInfo(`[webdav-sync] ${message}`, detail);
+        logger.logInfo(`[remote-sync] ${message}`, detail);
         return;
     }
-    logger.logInfo(`[webdav-sync] ${message}`);
+    logger.logInfo(`[remote-sync] ${message}`);
 }
 
 async function autoPullFromRemote(raw: string): Promise<void> {
@@ -36,31 +36,31 @@ async function autoPullFromRemote(raw: string): Promise<void> {
             fullSheetOverwrite: true,
         });
     });
-    clearWebdavPendingPushAfterManualRestore();
+    clearRemotePendingPushAfterManualRestore();
 }
 
 /**
- * Cold-start sync: when `MusicFreeBackup.json` exists on WebDAV, always pull with full
+ * Cold-start sync: when `MusicFreeBackup.json` exists on remote storage, always pull with full
  * sheet overwrite (remote is source of truth). `pendingPush` does not skip pull.
  * Empty remote + non-empty local: blocking dialog before overwrite.
  * No remote file: push local snapshot if pending, so first backup can be created.
  */
 export async function runWebdavBootstrapSync(): Promise<void> {
-    if (!isWebdavAutoSyncEnabled() || !isWebdavCredentialsComplete()) {
-        webdavSyncLog("bootstrap skipped (auto-sync off or credentials incomplete)");
+    if (!isRemoteAutoSyncEnabled() || !isRemoteCredentialsComplete()) {
+        remoteSyncLog("bootstrap skipped (auto-sync off or credentials incomplete)");
         return;
     }
 
-    webdavSyncLog("bootstrap: remote-wins — evaluate auto-pull");
+    remoteSyncLog("bootstrap: remote-wins — evaluate auto-pull");
 
     let raw: string | null;
     try {
         raw = await fetchRemoteBackupRaw();
     } catch (error) {
-        webdavSyncLog("bootstrap: fetch remote failed", error);
-        if (isWebdavPendingPush()) {
-            const pushed = await flushWebdavUpload();
-            webdavSyncLog(
+        remoteSyncLog("bootstrap: fetch remote failed", error);
+        if (isRemotePendingPush()) {
+            const pushed = await flushRemoteUpload();
+            remoteSyncLog(
                 `bootstrap: fetch failed — flush pending push ${pushed ? "succeeded" : "failed"}`,
             );
         }
@@ -68,10 +68,10 @@ export async function runWebdavBootstrapSync(): Promise<void> {
     }
 
     if (raw === null) {
-        webdavSyncLog("bootstrap: no remote backup file");
-        if (isWebdavPendingPush()) {
-            const pushed = await flushWebdavUpload();
-            webdavSyncLog(
+        remoteSyncLog("bootstrap: no remote backup file");
+        if (isRemotePendingPush()) {
+            const pushed = await flushRemoteUpload();
+            remoteSyncLog(
                 `bootstrap: no remote — flush pending push ${pushed ? "succeeded" : "failed"}`,
             );
         }
@@ -83,32 +83,32 @@ export async function runWebdavBootstrapSync(): Promise<void> {
     const localTrackCount = countTracksInMusicSheets(MusicSheet.frontend.getAllSheets());
 
     if (remoteTrackCount === 0 && localTrackCount > 0) {
-        webdavSyncLog("bootstrap: empty remote with local data — asking user");
+        remoteSyncLog("bootstrap: empty remote with local data — asking user");
         const confirmed = await confirmEmptyRemoteOverwrite();
         if (!confirmed) {
-            webdavSyncLog("bootstrap: user cancelled empty remote overwrite");
+            remoteSyncLog("bootstrap: user cancelled empty remote overwrite");
             return;
         }
-        webdavSyncLog("bootstrap: user confirmed empty remote overwrite");
+        remoteSyncLog("bootstrap: user confirmed empty remote overwrite");
         try {
             await autoPullFromRemote(raw);
-            webdavSyncLog("bootstrap: empty remote pull finished");
+            remoteSyncLog("bootstrap: empty remote pull finished");
         } catch (error) {
-            webdavSyncLog("bootstrap: empty remote pull failed", error);
+            remoteSyncLog("bootstrap: empty remote pull failed", error);
         }
         return;
     }
 
     if (remoteTrackCount === 0) {
-        webdavSyncLog("bootstrap: remote and local empty — nothing to pull");
+        remoteSyncLog("bootstrap: remote and local empty — nothing to pull");
         return;
     }
 
-    webdavSyncLog(`bootstrap: auto-pull ${remoteTrackCount} remote track(s) (overwrite)`);
+    remoteSyncLog(`bootstrap: auto-pull ${remoteTrackCount} remote track(s) (overwrite)`);
     try {
         await autoPullFromRemote(raw);
-        webdavSyncLog("bootstrap: auto-pull finished");
+        remoteSyncLog("bootstrap: auto-pull finished");
     } catch (error) {
-        webdavSyncLog("bootstrap: auto-pull failed", error);
+        remoteSyncLog("bootstrap: auto-pull failed", error);
     }
 }

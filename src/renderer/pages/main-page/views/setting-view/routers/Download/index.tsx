@@ -7,8 +7,8 @@ import { useTranslation } from "react-i18next";
 import useAppConfig from "@/hooks/useAppConfig";
 import AppConfig from "@shared/app-config/renderer";
 import {
-    getWebdavDownloadTargetSummary,
-    isWebdavDownloadTargetAvailable,
+    getRemoteDownloadTargetSummary,
+    isRemoteDownloadTargetAvailable,
 } from "@/renderer/core/webdav-download/config";
 import { RadioGroup } from "@headlessui/react";
 import SvgAsset from "@/renderer/components/SvgAsset";
@@ -23,7 +23,7 @@ export default function Download() {
     const { t } = useTranslation();
     const destination =
         useAppConfig("download.destination") ?? "local";
-    const webdavSummary = getWebdavDownloadTargetSummary();
+    const remoteSummary = getRemoteDownloadTargetSummary();
 
     return (
         <div className="setting-view--download-container">
@@ -33,11 +33,11 @@ export default function Download() {
                     onChange={(val: "local" | "webdav") => {
                         if (
                             val === "webdav" &&
-                            !isWebdavDownloadTargetAvailable()
+                            !isRemoteDownloadTargetAvailable()
                         ) {
                             toast.error(
                                 t(
-                                    "settings.download.webdav_destination_unavailable",
+                                    "settings.download.remote_destination_unavailable",
                                 ),
                             );
                             return;
@@ -92,15 +92,15 @@ export default function Download() {
                 />
             ) : (
                 <div className="label-container download-webdav-summary">
-                    <div>{t("settings.download.webdav_plugin_folder")}</div>
+                    <div>{t("settings.download.remote_music_folder")}</div>
                     <div className="download-webdav-summary-path">
-                        {webdavSummary.available
-                            ? webdavSummary.searchPathSegment ||
-                              t("settings.download.webdav_search_path_empty")
-                            : t("settings.download.webdav_destination_unavailable")}
+                        {remoteSummary.available
+                            ? remoteSummary.searchPathSegment ||
+                              t("settings.download.remote_music_path_empty")
+                            : t("settings.download.remote_destination_unavailable")}
                     </div>
                     <div className="download-webdav-summary-hint">
-                        {t("settings.download.webdav_plugin_list_hint")}
+                        {t("settings.download.remote_music_list_hint")}
                     </div>
                 </div>
             )}

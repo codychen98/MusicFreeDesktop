@@ -1,27 +1,22 @@
-import type { WebDAVClient } from "webdav";
 import logger from "@shared/logger/main";
+import type { RemoteStorageClient } from "@shared/remote-storage/types";
 import { remotePathsForWebdavTrack } from "@/common/webdav-download-path";
 
-import {
-    getWebdavMusicPluginConfig,
-    getWebdavMusicClient,
-} from "./upload-impl";
+import { getRemoteMusicClient } from "./upload-impl";
 import type {
     FetchRemoteSidecarLyricsResult,
     UploadRemoteSidecarLyricsInput,
 } from "./types";
 
 async function readRemoteTextIfExists(
-    client: WebDAVClient,
+    client: RemoteStorageClient,
     remotePath: string,
 ): Promise<string | undefined> {
     if (!(await client.exists(remotePath))) {
         return undefined;
     }
-    const contents = await client.getFileContents(remotePath, {
-        format: "text",
-    });
-    if (typeof contents !== "string" || !contents.trim()) {
+    const contents = await client.getText(remotePath);
+    if (!contents.trim()) {
         return undefined;
     }
     return contents;
@@ -35,8 +30,7 @@ export async function fetchRemoteSidecarLyrics(
         return {};
     }
 
-    const config = getWebdavMusicPluginConfig();
-    const client = getWebdavMusicClient(config);
+    const client = getRemoteMusicClient();
     const paths = remotePathsForWebdavTrack(normalizedPath);
 
     try {
@@ -51,7 +45,7 @@ export async function fetchRemoteSidecarLyrics(
         };
     } catch (e: unknown) {
         const err = e instanceof Error ? e : new Error(String(e));
-        logger.logError("WebDAV fetch remote sidecar lyrics failed", err, {
+        logger.logError("Remote music fetch sidecar lyrics failed", err, {
             remoteAudioPath: normalizedPath,
         });
         throw e;
@@ -70,24 +64,19 @@ export async function uploadRemoteSidecarLyrics(
         throw new Error("LYRIC_EMPTY");
     }
 
-    const config = getWebdavMusicPluginConfig();
-    const client = getWebdavMusicClient(config);
+    const client = getRemoteMusicClient();
     const paths = remotePathsForWebdavTrack(remoteAudioPath);
 
     try {
-        await client.putFileContents(paths.lrcPath, rawLrc, {
-            overwrite: true,
-        });
+        await client.putText(paths.lrcPath, rawLrc);
 
         const translation = input.translation?.trim();
         if (translation) {
-            await client.putFileContents(paths.tranLrcPath, translation, {
-                overwrite: true,
-            });
+            await client.putText(paths.tranLrcPath, translation);
         }
     } catch (e: unknown) {
         const err = e instanceof Error ? e : new Error(String(e));
-        logger.logError("WebDAV upload remote sidecar lyrics failed", err, {
+        logger.logError("Remote music upload sidecar lyrics failed", err, {
             remoteAudioPath,
         });
         throw e;

@@ -72,12 +72,12 @@ async function findSheetIdsContainingTrack(
 async function finalizeTrackRename(
     oldItem: IMusic.IMusicItem,
     newItem: IMusic.IMusicItem,
-    options?: { reloadWebdavPlugin?: boolean },
+    options?: { reloadRemoteMusicSource?: boolean },
 ): Promise<void> {
     const sheetIds = await findSheetIdsContainingTrack(newItem);
     await reloadSheetsAfterTrackRename(sheetIds);
     await trackPlayer.refreshAfterTrackRename(oldItem, newItem);
-    if (options?.reloadWebdavPlugin) {
+    if (options?.reloadRemoteMusicSource) {
         await PluginManager.reloadPlugins();
     }
 }
@@ -274,7 +274,7 @@ async function renameWebdavTrack(
     });
     markWebdavLocalMutation();
     await finalizeTrackRename(musicItem, result.newItem, {
-        reloadWebdavPlugin: true,
+        reloadRemoteMusicSource: true,
     });
     return result.newItem;
 }

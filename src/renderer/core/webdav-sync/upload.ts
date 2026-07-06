@@ -2,10 +2,11 @@ import debounce from "lodash.debounce";
 import AppConfig from "@shared/app-config/renderer";
 import { uploadBackupToWebdav } from "@/renderer/core/webdav-backup";
 import {
-    isWebdavAutoSyncEnabled,
-    isWebdavCredentialsComplete,
-    recordWebdavUploadSuccess,
-    setWebdavPendingPush,
+    isRemoteAutoSyncEnabled,
+    isRemoteCredentialsComplete,
+    isRemotePendingPush,
+    recordRemoteUploadSuccess,
+    setRemotePendingPush,
 } from "./config";
 
 const UPLOAD_DEBOUNCE_MS = 3000;
@@ -19,63 +20,85 @@ export function runWithoutWebdavSyncNotify<T>(fn: () => T | Promise<T>): Promise
     });
 }
 
+/** @deprecated Use `runWithoutWebdavSyncNotify` (name kept for compat) */
+export const runWithoutRemoteSyncNotify = runWithoutWebdavSyncNotify;
+
 function isNotifySuppressed(): boolean {
     return suppressNotifyDepth > 0;
 }
 
-export function markWebdavLocalMutation(): void {
-    if (isNotifySuppressed() || !isWebdavAutoSyncEnabled()) {
+export function markRemoteBackupMutation(): void {
+    if (isNotifySuppressed() || !isRemoteAutoSyncEnabled()) {
         return;
     }
-    setWebdavPendingPush(true);
-    scheduleDebouncedWebdavUpload();
+    setRemotePendingPush(true);
+    scheduleDebouncedRemoteUpload();
 }
 
-export async function flushWebdavUpload(): Promise<boolean> {
-    if (!isWebdavAutoSyncEnabled() || !isWebdavCredentialsComplete()) {
+/** @deprecated Use `markRemoteBackupMutation` */
+export const markWebdavLocalMutation = markRemoteBackupMutation;
+
+export async function flushRemoteUpload(): Promise<boolean> {
+    if (!isRemoteAutoSyncEnabled() || !isRemoteCredentialsComplete()) {
         return false;
     }
     try {
         await uploadBackupToWebdav();
-        recordWebdavUploadSuccess();
+        recordRemoteUploadSuccess();
         return true;
     } catch {
-        setWebdavPendingPush(true);
+        setRemotePendingPush(true);
         return false;
     }
 }
 
-const debouncedFlushWebdavUpload = debounce(
+/** @deprecated Use `flushRemoteUpload` */
+export const flushWebdavUpload = flushRemoteUpload;
+
+const debouncedFlushRemoteUpload = debounce(
     () => {
-        void flushWebdavUpload();
+        void flushRemoteUpload();
     },
     UPLOAD_DEBOUNCE_MS,
     { leading: false, trailing: true },
 );
 
-export function scheduleDebouncedWebdavUpload(): void {
-    if (!isWebdavAutoSyncEnabled() || !isWebdavCredentialsComplete()) {
+export function scheduleDebouncedRemoteUpload(): void {
+    if (!isRemoteAutoSyncEnabled() || !isRemoteCredentialsComplete()) {
         return;
     }
-    debouncedFlushWebdavUpload();
+    debouncedFlushRemoteUpload();
 }
 
-export function cancelScheduledWebdavUpload(): void {
-    debouncedFlushWebdavUpload.cancel();
+/** @deprecated Use `scheduleDebouncedRemoteUpload` */
+export const scheduleDebouncedWebdavUpload = scheduleDebouncedRemoteUpload;
+
+export function cancelScheduledRemoteUpload(): void {
+    debouncedFlushRemoteUpload.cancel();
 }
+
+/** @deprecated Use `cancelScheduledRemoteUpload` */
+export const cancelScheduledWebdavUpload = cancelScheduledRemoteUpload;
 
 export function setupWebdavAutoSync(): void {
     AppConfig.onConfigUpdate((patch) => {
-        if (!isWebdavAutoSyncEnabled()) {
+        if (!isRemoteAutoSyncEnabled()) {
             return;
         }
         const credentialsTouched =
-            "backup.webdav.url" in patch ||
-            "backup.webdav.username" in patch ||
-            "backup.webdav.password" in patch;
-        const autoSyncEnabled = patch["backup.webdav.autoSync"] === true;
-        if ((credentialsTouched || autoSyncEnabled) && AppConfig.getConfig("backup.webdav.pendingPush")) {
-            scheduleDebouncedWebdavUpload();
+            "backup.webdav.url" in patch
+            || "backup.webdav.username" in patch
+            || "backup.webdav.password" in patch
+            || "backup.remote.pcloud.hostname" in patch
+            || "backup.remote.pcloud.tokenJson" in patch;
+        const autoSyncEnabled =
+            patch["backup.remote.autoSync"] === true
+            || patch["backup.webdav.autoSync"] === true;
+        if (
+            (credentialsTouched || autoSyncEnabled)
+            && isRemotePendingPush()
+        ) {
+            scheduleDebouncedRemoteUpload();
         }
     });
 }

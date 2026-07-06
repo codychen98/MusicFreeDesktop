@@ -19,5 +19,6 @@ This fork is provided **as-is**. You are solely responsible for how you use it: 
 - **`musicfree://player` deep links** — External apps or shortcuts can send playback/control URLs when MusicFree is running (second instance / OS URL handlers). Supported paths (after `musicfree://player/`): `skipnext`, `skipprev`, `toggleplay`, `favorite`, `unfavorite`, `favoritetoggle`, `togglelyric`. Example: `musicfree://player/toggleplay`
 - **Desktop lyrics** — Multiple-line desktop lyric display and an LX-style scrollable lyric list; stability fixes for dragging and Windows.
 - **AutoSync using WebDAV** — Backup/restore from **Settings → Backup** (server URL, username, password). Optional **auto-sync** pulls remote state on startup when configured and can coordinate with local edits. **Webdav is treated as source of truth, songs don't exist in webdav backup will also be deleted locally.**
+- **Built-in remote music storage** — WebDAV and pCloud API are configured once under **Settings → Backup** (credentials, music library path, auto-sync). Browse, play, download, and backup use the built-in **WebDAV** source; an external WebDAV plugin is optional and ignored if installed.
 - **Playlists sidebar** — Per-playlist track counts, drag-and-drop reorder, and behavior tuned alongside WebDAV ordering.
 

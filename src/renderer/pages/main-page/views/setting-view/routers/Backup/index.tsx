@@ -12,18 +12,33 @@ import { useTranslation } from "react-i18next";
 import AppConfig from "@shared/app-config/renderer";
 import useAppConfig from "@/hooks/useAppConfig";
 import { dialogUtil, fsUtil } from "@shared/utils/renderer";
+import {
+    getRemoteMusicPath,
+    getRemoteStorageCredentialsFromConfig,
+    isRemoteCredentialsCompleteInConfig,
+} from "@shared/remote-storage/remote-config";
+import { resolveRemoteTransport } from "@shared/remote-storage/resolve";
 
-
+const PCLOUD_HOSTNAME_OPTIONS = [
+    "api.pcloud.com",
+    "eapi.pcloud.com",
+] as const;
 
 export default function Backup() {
     const { t } = useTranslation();
-    const webdavUrl = useAppConfig("backup.webdav.url");
-    const webdavUsername = useAppConfig("backup.webdav.username");
-    const webdavPassword = useAppConfig("backup.webdav.password");
-    const webdavCredentialsComplete = Boolean(
-        webdavUrl?.trim() && webdavUsername?.trim() && webdavPassword?.trim(),
-    );
+    useAppConfig("backup.webdav.url");
+    useAppConfig("backup.webdav.username");
+    useAppConfig("backup.webdav.password");
+    useAppConfig("backup.remote.pcloud.hostname");
+    useAppConfig("backup.remote.pcloud.tokenJson");
+    useAppConfig("backup.remote.musicPath");
 
+    const config = AppConfig.getAllConfig();
+    const credentials = getRemoteStorageCredentialsFromConfig(config);
+    const activeTransport = resolveRemoteTransport(credentials);
+    const remoteCredentialsComplete =
+        isRemoteCredentialsCompleteInConfig(config);
+    const musicPathSet = Boolean(getRemoteMusicPath(config));
 
     function onBackupClick() {
         return backupMusicSheetsToWebdavWithToast(t);
@@ -114,7 +129,34 @@ export default function Backup() {
             <div className={"label-container setting-row"}>
                 {t("settings.backup.backup_by_webdav")}
             </div>
-            <div className="webdav-backup-container">
+            <div className="remote-backup-container">
+                <div className="remote-backup-subsection-label">
+                    {t("settings.backup.pcloud_api")}
+                </div>
+                <div className="remote-backup-full-width">
+                    <RadioGroupSettingItem
+                        keyPath="backup.remote.pcloud.hostname"
+                        label={t("settings.backup.pcloud_hostname")}
+                        options={[...PCLOUD_HOSTNAME_OPTIONS]}
+                        renderItem={(hostname) =>
+                            hostname === "eapi.pcloud.com"
+                                ? t("settings.backup.pcloud_hostname_eu")
+                                : t("settings.backup.pcloud_hostname_us")
+                        }
+                    ></RadioGroupSettingItem>
+                </div>
+                <div className="remote-backup-full-width">
+                    <InputSettingItem
+                        width="100%"
+                        label={t("settings.backup.pcloud_token_json")}
+                        type="password"
+                        trim
+                        keyPath="backup.remote.pcloud.tokenJson"
+                    ></InputSettingItem>
+                </div>
+                <div className="remote-backup-subsection-label">
+                    {t("settings.backup.webdav_credentials")}
+                </div>
                 <InputSettingItem
                     width="100%"
                     label={t("settings.backup.webdav_server_url")}
@@ -134,23 +176,50 @@ export default function Backup() {
                     trim
                     keyPath="backup.webdav.password"
                 ></InputSettingItem>
-                <CheckBoxSettingItem
-                    keyPath="backup.webdav.autoSync"
-                    label={t("settings.backup.webdav_auto_sync")}
-                    onChange={(event, checked) => {
-                        if (checked && !webdavCredentialsComplete) {
-                            event.preventDefault();
-                            toast.error(
-                                t("settings.backup.webdav_auto_sync_requires_credentials"),
-                            );
-                        }
-                    }}
-                ></CheckBoxSettingItem>
-                {!webdavCredentialsComplete ? (
-                    <div className="label-container webdav-auto-sync-hint">
-                        {t("settings.backup.webdav_auto_sync_credentials_hint")}
+                <div className="remote-backup-full-width">
+                    <InputSettingItem
+                        width="100%"
+                        label={t("settings.backup.remote_music_path")}
+                        trim
+                        keyPath="backup.remote.musicPath"
+                    ></InputSettingItem>
+                </div>
+                {activeTransport === "pcloud" ? (
+                    <div className="label-container remote-backup-hint">
+                        {t("settings.backup.remote_transport_active_pcloud")}
+                    </div>
+                ) : activeTransport === "webdav" ? (
+                    <div className="label-container remote-backup-hint">
+                        {t("settings.backup.remote_transport_active_webdav")}
                     </div>
                 ) : null}
+                {!remoteCredentialsComplete ? (
+                    <div className="label-container remote-backup-hint">
+                        {t("settings.backup.remote_credentials_incomplete_hint")}
+                    </div>
+                ) : null}
+                {remoteCredentialsComplete && !musicPathSet ? (
+                    <div className="label-container remote-backup-hint">
+                        {t("settings.backup.remote_music_path_hint")}
+                    </div>
+                ) : null}
+                <div className="remote-backup-priority-hint">
+                    {t("settings.backup.pcloud_priority_hint")}
+                </div>
+                <div className="remote-backup-full-width">
+                    <CheckBoxSettingItem
+                        keyPath="backup.remote.autoSync"
+                        label={t("settings.backup.remote_auto_sync")}
+                        onChange={(event, checked) => {
+                            if (checked && !remoteCredentialsComplete) {
+                                event.preventDefault();
+                                toast.error(
+                                    t("settings.backup.remote_auto_sync_requires_credentials"),
+                                );
+                            }
+                        }}
+                    ></CheckBoxSettingItem>
+                </div>
             </div>
             <div className="setting-row backup-row">
                 <div

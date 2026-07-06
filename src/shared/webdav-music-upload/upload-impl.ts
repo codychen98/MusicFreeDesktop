@@ -1,7 +1,16 @@
 import fs from "fs/promises";
-import { AuthType, createClient, type WebDAVClient } from "webdav";
 import AppConfig from "@shared/app-config/main";
 import logger from "@shared/logger/main";
+import {
+    getRemoteMusicPath,
+    getRemoteStorageCredentialsFromConfig,
+    isRemoteCredentialsCompleteInConfig,
+} from "@shared/remote-storage/remote-config";
+import {
+    createRemoteStorageClient,
+    resolveRemoteTransport,
+} from "@shared/remote-storage/resolve";
+import type { RemoteStorageClient } from "@shared/remote-storage/types";
 import {
     lyricSidecarFilename,
     remotePathFor,
@@ -10,9 +19,10 @@ import {
 } from "@/common/webdav-download-path";
 
 import {
-    WebdavMusicPluginConfigIncompleteError,
+    RemoteMusicConfigIncompleteError,
     type RemoteAudioExistsInput,
     type RemoteAudioExistsResult,
+    type RemoteMusicConfig,
     type UploadDownloadArtifactsInput,
     type UploadDownloadArtifactsResult,
 } from "./types";
@@ -20,91 +30,85 @@ import {
 export type {
     RemoteAudioExistsInput,
     RemoteAudioExistsResult,
+    RemoteMusicConfig,
     UploadDownloadArtifactsInput,
     UploadDownloadArtifactsResult,
 } from "./types";
 
-export { WebdavMusicPluginConfigIncompleteError } from "./types";
+export {
+    RemoteMusicConfigIncompleteError,
+    WebdavMusicPluginConfigIncompleteError,
+} from "./types";
 
 export const WEBDAV_MUSIC_PLUGIN_PLATFORM = "WebDAV" as const;
 
-interface WebdavMusicPluginConfig {
-    url: string;
-    username: string;
-    password: string;
-    searchPath: string;
-    remoteDir: string;
-}
-
-function getWebdavMusicPluginUserVariables(): Record<string, string> {
-    const meta = AppConfig.getConfig("private.pluginMeta") ?? {};
-    return meta[WEBDAV_MUSIC_PLUGIN_PLATFORM]?.userVariables ?? {};
-}
-
-export function getWebdavMusicPluginConfig(): WebdavMusicPluginConfig {
-    const vars = getWebdavMusicPluginUserVariables();
-    const url = vars.url?.trim() ?? "";
-    const username = vars.username?.trim() ?? "";
-    const password = vars.password?.trim() ?? "";
-    const searchPath = vars.searchPath?.trim() ?? "";
-    const remoteDir = resolveRemoteDir(searchPath);
-    if (!url || !username || !password || !remoteDir) {
-        throw new WebdavMusicPluginConfigIncompleteError();
-    }
-    return { url, username, password, searchPath, remoteDir };
-}
-
-let cachedClient: WebDAVClient | null = null;
+let cachedClient: RemoteStorageClient | null = null;
 let cachedClientKey = "";
 
-export function getWebdavMusicClient(config: WebdavMusicPluginConfig): WebDAVClient {
-    const key = `${config.url}\0${config.username}\0${config.password}`;
+function buildRemoteMusicClientCacheKey(): string {
+    const config = AppConfig.getAllConfig();
+    const creds = getRemoteStorageCredentialsFromConfig(config);
+    const transport = resolveRemoteTransport(creds);
+    if (transport === "pcloud") {
+        const pcloud = creds.pcloud!;
+        return `pcloud\0${pcloud.hostname}\0${pcloud.tokenJson}`;
+    }
+    if (transport === "webdav") {
+        const webdav = creds.webdav!;
+        return `webdav\0${webdav.url}\0${webdav.username}\0${webdav.password}`;
+    }
+    return "";
+}
+
+export function getRemoteMusicConfig(): RemoteMusicConfig {
+    const config = AppConfig.getAllConfig();
+    const musicPath = getRemoteMusicPath(config);
+    const remoteDir = resolveRemoteDir(musicPath);
+    if (!isRemoteCredentialsCompleteInConfig(config) || !remoteDir) {
+        throw new RemoteMusicConfigIncompleteError();
+    }
+    return { musicPath, remoteDir };
+}
+
+export function getRemoteMusicClient(): RemoteStorageClient {
+    const key = buildRemoteMusicClientCacheKey();
+    if (!key) {
+        throw new RemoteMusicConfigIncompleteError();
+    }
     if (cachedClient && cachedClientKey === key) {
         return cachedClient;
     }
-    cachedClient = createClient(config.url, {
-        authType: AuthType.Password,
-        username: config.username,
-        password: config.password,
-    });
+    const config = AppConfig.getAllConfig();
+    cachedClient = createRemoteStorageClient(
+        getRemoteStorageCredentialsFromConfig(config),
+    );
     cachedClientKey = key;
     return cachedClient;
-}
-
-async function ensureRemoteDirectory(
-    client: WebDAVClient,
-    remoteDir: string,
-): Promise<void> {
-    if (!(await client.exists(remoteDir))) {
-        await client.createDirectory(remoteDir, { recursive: true });
-    }
 }
 
 type UploadFileMode = "binary" | "text";
 
 async function uploadFile(
-    config: WebdavMusicPluginConfig,
-    client: WebDAVClient,
+    client: RemoteStorageClient,
     localPath: string,
     remotePath: string,
     mode: UploadFileMode,
 ): Promise<void> {
-    const payload =
-        mode === "text"
-            ? await fs.readFile(localPath, "utf8")
-            : await fs.readFile(localPath);
-
-    await client.putFileContents(remotePath, payload, {
-        overwrite: true,
-    });
+    if (mode === "text") {
+        const payload = await fs.readFile(localPath, "utf8");
+        await client.putText(remotePath, payload);
+        return;
+    }
+    const payload = await fs.readFile(localPath);
+    await client.putBinary(remotePath, payload);
 }
 
 export async function uploadDownloadArtifacts(
     input: UploadDownloadArtifactsInput,
 ): Promise<UploadDownloadArtifactsResult> {
-    const config = getWebdavMusicPluginConfig();
-    const client = getWebdavMusicClient(config);
-    await ensureRemoteDirectory(client, config.remoteDir);
+    const config = getRemoteMusicConfig();
+    const client = getRemoteMusicClient();
+    await client.ensureDir(config.remoteDir);
 
     const remoteAudioPath = remotePathFor(config.remoteDir, input.audioFilename);
     let audioSkipped = false;
@@ -114,7 +118,6 @@ export async function uploadDownloadArtifacts(
             audioSkipped = true;
         } else {
             await uploadFile(
-                config,
                 client,
                 input.localAudioPath,
                 remoteAudioPath,
@@ -132,7 +135,6 @@ export async function uploadDownloadArtifacts(
             );
             if (!(await client.exists(remoteLrc))) {
                 await uploadFile(
-                    config,
                     client,
                     input.localLrcPath,
                     remoteLrc,
@@ -149,7 +151,6 @@ export async function uploadDownloadArtifacts(
             );
             if (!(await client.exists(remoteTran))) {
                 await uploadFile(
-                    config,
                     client,
                     input.localTranLrcPath,
                     remoteTran,
@@ -167,7 +168,7 @@ export async function uploadDownloadArtifacts(
         };
     } catch (e: unknown) {
         const err = e instanceof Error ? e : new Error(String(e));
-        logger.logError("WebDAV upload download artifacts failed", err, {
+        logger.logError("Remote music upload download artifacts failed", err, {
             remoteAudioPath,
             audioFilename: input.audioFilename,
         });
@@ -178,8 +179,8 @@ export async function uploadDownloadArtifacts(
 export async function remoteAudioExists(
     input: RemoteAudioExistsInput,
 ): Promise<RemoteAudioExistsResult> {
-    const config = getWebdavMusicPluginConfig();
-    const client = getWebdavMusicClient(config);
+    const config = getRemoteMusicConfig();
+    const client = getRemoteMusicClient();
     const remoteAudioPath = remotePathFor(config.remoteDir, input.audioFilename);
     const exists = await client.exists(remoteAudioPath);
     return {

@@ -119,6 +119,7 @@ export default class PluginMethods implements IPlugin.IPluginInstanceMethods {
         musicItem: IMusic.IMusicItem,
     ): Promise<ILyric.ILyricSource | null> {
         if (musicItem.platform === WEBDAV_MUSIC_PLUGIN_PLATFORM) {
+            // Built-in remote storage (WebDAV or pCloud); sidecar lyrics on remote.
             try {
                 const sidecar = await fetchRemoteSidecarLyrics(musicItem.id);
                 if (sidecar.rawLrc || sidecar.translation) {

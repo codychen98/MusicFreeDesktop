@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import { i18n } from "@/shared/i18n/renderer";
 
 import {
-    isWebdavDownloadTargetAvailable,
+    isRemoteMusicAvailable,
     WEBDAV_MUSIC_PLUGIN_PLATFORM,
 } from "./config";
 import { deleteWebdavRemoteTrack } from "./delete";
@@ -35,7 +35,7 @@ export async function handleWebdavAfterPlaylistRemove(
         return;
     }
 
-    const canDeleteRemote = isWebdavDownloadTargetAvailable();
+    const canDeleteRemote = isRemoteMusicAvailable();
 
     for (const item of webdavItems) {
         const remainingSheets = findSheetsContainingMusic(item);

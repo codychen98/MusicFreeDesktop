@@ -100,6 +100,19 @@ interface _IAppConfig {
     /** Millis of last successful WebDAV upload (diagnostics / future freshness) */
     "backup.webdav.lastSuccessfulPushAt": number;
 
+    /** Comma-separated remote music roots; empty = remote music disabled */
+    "backup.remote.musicPath": string;
+    /** pCloud API hostname (US or EU) */
+    "backup.remote.pcloud.hostname": string;
+    /** Full pCloud rclone token JSON blob */
+    "backup.remote.pcloud.tokenJson": string;
+    /** Auto-sync playlist backup to active remote transport */
+    "backup.remote.autoSync": boolean;
+    /** Local snapshot not yet uploaded to remote */
+    "backup.remote.pendingPush": boolean;
+    /** Millis of last successful remote backup upload */
+    "backup.remote.lastSuccessfulPushAt": number;
+
     /** 本地音乐配置 */
     "localMusic.watchDir": string[];
 

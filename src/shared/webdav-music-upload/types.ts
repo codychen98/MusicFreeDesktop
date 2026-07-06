@@ -1,8 +1,21 @@
-export class WebdavMusicPluginConfigIncompleteError extends Error {
+export class RemoteMusicConfigIncompleteError extends Error {
     constructor() {
-        super("WEBDAV_MUSIC_PLUGIN_CONFIG_INCOMPLETE");
+        super("REMOTE_MUSIC_CONFIG_INCOMPLETE");
+        this.name = "RemoteMusicConfigIncompleteError";
+    }
+}
+
+/** @deprecated Use `RemoteMusicConfigIncompleteError` */
+export class WebdavMusicPluginConfigIncompleteError extends RemoteMusicConfigIncompleteError {
+    constructor() {
+        super();
         this.name = "WebdavMusicPluginConfigIncompleteError";
     }
+}
+
+export interface RemoteMusicConfig {
+    musicPath: string;
+    remoteDir: string;
 }
 
 export interface UploadDownloadArtifactsInput {
@@ -25,7 +38,7 @@ export interface RemoteAudioExistsInput {
 }
 
 export interface RemoteAudioExistsResult {
-    /** Full remote path resolved from plugin config and `audioFilename`. */
+    /** Full remote path resolved from remote music config and `audioFilename`. */
     remoteAudioPath: string;
     exists: boolean;
 }

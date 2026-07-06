@@ -6,15 +6,31 @@
     gap: 12px;
   }
 
-  & .webdav-backup-container {
+  & .remote-backup-container {
     display: grid;
     grid-template-columns: 33% 33%;
     gap: 18px;
   }
 
-  & .webdav-auto-sync-hint {
+  & .remote-backup-subsection-label {
+    grid-column: 1 / -1;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  & .remote-backup-hint {
     grid-column: 1 / -1;
     opacity: 0.75;
     font-size: 0.9em;
+  }
+
+  & .remote-backup-full-width {
+    grid-column: 1 / -1;
+  }
+
+  & .remote-backup-priority-hint {
+    grid-column: 1 / -1;
+    opacity: 0.65;
+    font-size: 0.85em;
   }
 }

@@ -1,15 +1,12 @@
-import type { WebDAVClient } from "webdav";
 import logger from "@shared/logger/main";
+import type { RemoteStorageClient } from "@shared/remote-storage/types";
 import { remotePathsForWebdavTrack } from "@/common/webdav-download-path";
 
-import {
-    getWebdavMusicPluginConfig,
-    getWebdavMusicClient,
-} from "./upload-impl";
+import { getRemoteMusicClient } from "./upload-impl";
 import type { DeleteWebdavRemoteTrackInput } from "./types";
 
 async function deleteRemoteFileIfExists(
-    client: WebDAVClient,
+    client: RemoteStorageClient,
     remotePath: string,
 ): Promise<void> {
     if (!(await client.exists(remotePath))) {
@@ -26,8 +23,7 @@ export async function deleteWebdavRemoteTrack(
         throw new Error("WEBDAV_REMOTE_PATH_MISSING");
     }
 
-    const config = getWebdavMusicPluginConfig();
-    const client = getWebdavMusicClient(config);
+    const client = getRemoteMusicClient();
     const paths = remotePathsForWebdavTrack(remoteAudioPath);
 
     try {
@@ -36,7 +32,7 @@ export async function deleteWebdavRemoteTrack(
         await deleteRemoteFileIfExists(client, paths.tranLrcPath);
     } catch (e: unknown) {
         const err = e instanceof Error ? e : new Error(String(e));
-        logger.logError("WebDAV delete remote track failed", err, {
+        logger.logError("Remote music delete track failed", err, {
             remoteAudioPath,
         });
         throw e;

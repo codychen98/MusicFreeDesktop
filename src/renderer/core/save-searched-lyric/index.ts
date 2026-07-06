@@ -9,7 +9,7 @@ import {
 import { WEBDAV_MUSIC_PLUGIN_PLATFORM } from "@/renderer/core/webdav-download/config";
 import { uploadRemoteSidecarLyrics } from "@/renderer/core/webdav-download/sidecar";
 import PluginManager from "@shared/plugin-manager/renderer";
-import { WebdavMusicPluginConfigIncompleteError } from "@shared/webdav-music-upload/types";
+import { RemoteMusicConfigIncompleteError } from "@shared/webdav-music-upload/types";
 import { fsUtil } from "@shared/utils/renderer";
 
 export class SaveSearchedLyricError extends Error {
@@ -77,7 +77,7 @@ async function saveToWebdavSidecar(
             translation,
         });
     } catch (e: unknown) {
-        if (e instanceof WebdavMusicPluginConfigIncompleteError) {
+        if (e instanceof RemoteMusicConfigIncompleteError) {
             throw new SaveSearchedLyricError(
                 SaveSearchedLyricErrorCode.WEBDAV_CONFIG_INCOMPLETE,
             );

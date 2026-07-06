@@ -23,9 +23,7 @@ import { DownloadEvts, ee } from "./ee";
 import AppConfig from "@shared/app-config/renderer";
 import PluginManager from "@shared/plugin-manager/renderer";
 import { fsUtil } from "@shared/utils/renderer";
-import {
-    isWebdavDownloadTargetAvailable,
-} from "@/renderer/core/webdav-download/config";
+import { isRemoteMusicAvailable } from "@/renderer/core/webdav-download/config";
 import {
     remoteAudioExists,
     uploadDownloadArtifacts,
@@ -96,7 +94,7 @@ function setDownloadingConcurrency(concurrency: number) {
 function shouldUseWebdavDownloadDestination(): boolean {
     const destination =
         AppConfig.getConfig("download.destination") ?? "local";
-    return destination === "webdav" && isWebdavDownloadTargetAvailable();
+    return destination === "webdav" && isRemoteMusicAvailable();
 }
 
 async function ensureDirectory(dirPath: string): Promise<void> {

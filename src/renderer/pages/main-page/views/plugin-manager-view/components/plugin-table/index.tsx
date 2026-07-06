@@ -16,12 +16,18 @@ import { showPanel } from "@/renderer/components/Panel";
 import DragReceiver, { startDrag } from "@/renderer/components/DragReceiver";
 import { produce } from "immer";
 import { i18n } from "@/shared/i18n/renderer";
+import { remoteMusicPluginHash } from "@/common/constant";
 import PluginManager, { useSortedPlugins } from "@shared/plugin-manager/renderer";
 
 const t = i18n.t;
 
+function isSupersededWebdavPlugin(row: IPlugin.IPluginDelegate): boolean {
+    return row.platform === "WebDAV" && row.hash !== remoteMusicPluginHash;
+}
+
 function renderOptions(info: any) {
     const row = info.row.original as IPlugin.IPluginDelegate;
+    const superseded = isSupersededWebdavPlugin(row);
 
     return (
         <div>
@@ -53,7 +59,7 @@ function renderOptions(info: any) {
             >
                 {t("plugin_management_page.uninstall")}
             </ActionButton>
-            <Condition condition={row.srcUrl}>
+            <Condition condition={row.srcUrl && !superseded}>
                 <ActionButton
                     style={{
                         color: "var(--successColor, #08A34C)",
@@ -77,7 +83,11 @@ function renderOptions(info: any) {
                 </ActionButton>
             </Condition>
 
-            <Condition condition={row.supportedMethod.includes("importMusicItem")}>
+            <Condition
+                condition={
+                    row.supportedMethod.includes("importMusicItem") && !superseded
+                }
+            >
                 <ActionButton
                     style={{
                         color: "var(--infoColor, #0A95C8)",
@@ -117,7 +127,11 @@ function renderOptions(info: any) {
                     {t("plugin.method_import_music_item")}
                 </ActionButton>
             </Condition>
-            <Condition condition={row.supportedMethod.includes("importMusicSheet")}>
+            <Condition
+                condition={
+                    row.supportedMethod.includes("importMusicSheet") && !superseded
+                }
+            >
                 <ActionButton
                     style={{
                         color: "#0A95C8",
@@ -157,7 +171,7 @@ function renderOptions(info: any) {
                     {t("plugin.method_import_music_sheet")}
                 </ActionButton>
             </Condition>
-            <Condition condition={row.userVariables?.length}>
+            <Condition condition={row.userVariables?.length && !superseded}>
                 <ActionButton
                     style={{
                         color: "#0A95C8",
@@ -192,7 +206,21 @@ const columnDef = [
         size: 64,
     }),
     columnHelper.accessor("platform", {
-        cell: (info) => info.getValue(),
+        cell: (info) => {
+            const row = info.row.original;
+            const platform = info.getValue();
+            if (isSupersededWebdavPlugin(row)) {
+                return (
+                    <span className="plugin-table--platform-cell">
+                        <span>{platform}</span>
+                        <span className="plugin-table--superseded-badge">
+                            {t("plugin_management_page.builtin_remote_superseded")}
+                        </span>
+                    </span>
+                );
+            }
+            return platform;
+        },
         header: () => t("media.media_platform"),
         minSize: 150,
         size: 200,

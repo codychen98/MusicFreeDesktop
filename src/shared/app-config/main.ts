@@ -7,6 +7,8 @@ import { IAppConfig } from "@/types/app-config";
 import { IWindowManager } from "@/types/main/window-manager";
 import logger from "@shared/logger/main";
 import _defaultAppConfig from "@shared/app-config/default-app-config";
+import { buildLegacyRemoteConfigMigration } from "@shared/remote-storage/migrate-legacy-config";
+import { normalizeRemoteConfigPatch } from "@shared/remote-storage/remote-config";
 
 
 class AppConfig {
@@ -168,10 +170,19 @@ class AppConfig {
             if (this.config) {
                 return { ..._defaultAppConfig, ...this.config };
             } else {
-                const rawConfig = await fs.readFile(this.configPath, "utf8");
-                this.config = JSON.parse(rawConfig);
+                const rawConfigText = await fs.readFile(this.configPath, "utf8");
+                const rawConfig = JSON.parse(rawConfigText) as IAppConfig;
+                const rawKeys = new Set(Object.keys(rawConfig));
+                this.config = rawConfig;
                 // 升级旧版设置
                 await this.migrateOldVersionConfig();
+                const remoteMigration = buildLegacyRemoteConfigMigration(
+                    this.config,
+                    { rawKeys },
+                );
+                if (remoteMigration.migrated) {
+                    this.config = { ...this.config, ...remoteMigration.patch };
+                }
                 this.config = {
                     ..._defaultAppConfig,
                     ...this.config,
@@ -184,6 +195,14 @@ class AppConfig {
                 ) {
                     this.config["lyric.hideOnStartup"] = !legacyShowOnStartup;
                     delete configRecord["lyric.showOnStartup"];
+                }
+                if (remoteMigration.migrated) {
+                    const rawMergedConfig = JSON.stringify(this.config, undefined, 4);
+                    originalFs.writeFileSync(
+                        this.configPath,
+                        rawMergedConfig,
+                        "utf-8",
+                    );
                 }
             }
         } catch (e) {
@@ -219,10 +238,7 @@ class AppConfig {
 
     private _setConfig(data: IAppConfig, from: "main" | "renderer") {
         try {
-            const patch: IAppConfig = { ...data };
-            if (patch["backup.webdav.autoSync"] === false) {
-                patch["backup.webdav.pendingPush"] = false;
-            }
+            const patch: IAppConfig = normalizeRemoteConfigPatch({ ...data });
             // 1. Merge old one
             this.config = { ..._defaultAppConfig, ...this.config, ...patch };
             // 2. Save to file
