@@ -5,6 +5,7 @@ import {
     normalizeWebdavServerUrl,
     splitWebdavUrlIntoServerAndRoot,
 } from "./remote-paths";
+import { isValidPcloudTokenJson } from "./parse-pcloud-token";
 import { resolveRemoteTransport } from "./resolve";
 import type { RemoteStorageCredentials } from "./types";
 
@@ -29,10 +30,19 @@ export function isWebdavCredentialsCompleteInConfig(
 export function isPcloudCredentialsCompleteInConfig(
     config: IAppConfig,
 ): boolean {
+    const tokenJson = trim(config["backup.remote.pcloud.tokenJson"]);
     return Boolean(
         trim(config["backup.remote.pcloud.hostname"] ?? DEFAULT_PCLOUD_HOSTNAME)
-            && trim(config["backup.remote.pcloud.tokenJson"]),
+            && tokenJson
+            && isValidPcloudTokenJson(tokenJson),
     );
+}
+
+export function isPcloudTokenFieldPresentButInvalidInConfig(
+    config: IAppConfig,
+): boolean {
+    const tokenJson = trim(config["backup.remote.pcloud.tokenJson"]);
+    return Boolean(tokenJson && !isValidPcloudTokenJson(tokenJson));
 }
 
 export function isRemoteCredentialsCompleteInConfig(

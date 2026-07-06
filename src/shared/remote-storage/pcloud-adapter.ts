@@ -89,6 +89,22 @@ function isNotFoundError(error: unknown): boolean {
     return error instanceof PcloudApiError && error.code === 2009;
 }
 
+function encodeUtf8(text: string): Uint8Array {
+    return new TextEncoder().encode(text);
+}
+
+function toUint8Array(body: Buffer): Uint8Array {
+    return new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+}
+
+function arrayBufferToBuffer(arrayBuffer: ArrayBuffer): Buffer {
+    const bytes = new Uint8Array(arrayBuffer);
+    if (typeof Buffer !== "undefined") {
+        return Buffer.from(bytes);
+    }
+    return bytes as unknown as Buffer;
+}
+
 export function createPcloudRemoteStorage(
     options: PcloudClientOptions,
 ): RemoteStorageClient {
@@ -139,7 +155,7 @@ export function createPcloudRemoteStorage(
         }
     };
 
-    const uploadBinary = async (path: string, body: Buffer): Promise<void> => {
+    const uploadBinary = async (path: string, body: Uint8Array): Promise<void> => {
         const normalized = pathFor(path);
         const { folderPath, filename } = splitRemotePath(normalized);
         const params = {
@@ -164,16 +180,17 @@ export function createPcloudRemoteStorage(
             return;
         }
 
+        const payload = new Blob([body]);
         const url = buildUrl("uploadfile", params);
         const response = await fetchFn(url.toString(), {
             method: "PUT",
             headers: {
                 ...authHeaders(),
-                "Content-Length": String(body.length),
+                "Content-Length": String(payload.size),
                 "Content-Type": "application/octet-stream",
                 "Transfer-Encoding": "identity",
             },
-            body,
+            body: payload,
         });
         const data = (await response.json()) as PcloudJsonResponse;
         assertPcloudSuccess(data);
@@ -208,15 +225,15 @@ export function createPcloudRemoteStorage(
                 throw new PcloudApiError(response.status, "download failed");
             }
             const arrayBuffer = await response.arrayBuffer();
-            return Buffer.from(arrayBuffer);
+            return arrayBufferToBuffer(arrayBuffer);
         },
 
         async putText(path, body) {
-            await uploadBinary(pathFor(path), Buffer.from(body, "utf8"));
+            await uploadBinary(pathFor(path), encodeUtf8(body));
         },
 
         async putBinary(path, body) {
-            await uploadBinary(pathFor(path), body);
+            await uploadBinary(pathFor(path), toUint8Array(body));
         },
 
         async ensureDir(path) {

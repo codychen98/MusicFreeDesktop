@@ -39,3 +39,13 @@ export function parsePcloudTokenJson(tokenJson: string): ParsedPcloudToken {
         accessToken: accessToken.trim(),
     };
 }
+
+/** True when token JSON parses to a bearer access_token (used for transport selection). */
+export function isValidPcloudTokenJson(tokenJson: string): boolean {
+    try {
+        parsePcloudTokenJson(tokenJson);
+        return true;
+    } catch {
+        return false;
+    }
+}

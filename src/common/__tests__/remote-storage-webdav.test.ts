@@ -185,6 +185,31 @@ function runResolverTests(): void {
         "pcloud wins over webdav when both complete",
     );
 
+    assert(
+        resolveRemoteTransport({
+            pcloud: {
+                hostname: "api.pcloud.com",
+                tokenJson: "not-valid-json",
+            },
+            webdav: {
+                url: "https://dav.example",
+                username: "user",
+                password: "pass",
+            },
+        }) === "webdav",
+        "invalid pcloud token falls through to webdav when webdav complete",
+    );
+
+    assert(
+        resolveRemoteTransport({
+            pcloud: {
+                hostname: "api.pcloud.com",
+                tokenJson: "not-valid-json",
+            },
+        }) === null,
+        "invalid pcloud token alone resolves to null",
+    );
+
     assertThrows(
         () =>
             createRemoteStorageClient({

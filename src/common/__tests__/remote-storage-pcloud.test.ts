@@ -1,4 +1,7 @@
-import { parsePcloudTokenJson } from "../../shared/remote-storage/parse-pcloud-token";
+import {
+    isValidPcloudTokenJson,
+    parsePcloudTokenJson,
+} from "../../shared/remote-storage/parse-pcloud-token";
 import { createPcloudRemoteStorage } from "../../shared/remote-storage/pcloud-adapter";
 import type { PcloudFetch } from "../../shared/remote-storage/pcloud-adapter";
 import { createRemoteStorageClient } from "../../shared/remote-storage/resolve";
@@ -119,6 +122,17 @@ function runTokenParseTests(): void {
             ),
         "PcloudTokenInvalidError",
         "invalid token_type throws PcloudTokenInvalidError",
+    );
+
+    assert(
+        isValidPcloudTokenJson(
+            "{\"access_token\":\"abc\",\"token_type\":\"bearer\"}",
+        ),
+        "isValidPcloudTokenJson true for valid token",
+    );
+    assert(
+        !isValidPcloudTokenJson("not-json"),
+        "isValidPcloudTokenJson false for invalid JSON",
     );
 }
 
@@ -293,11 +307,47 @@ function runResolverPcloudClientTest(): void {
     );
 }
 
+async function runRendererSafePutTextTest(): Promise<void> {
+    let uploadBody: unknown;
+    const fetchImpl: PcloudFetch = async (_input, init) => {
+        uploadBody = init?.body;
+        return {
+            json: async () => ({ result: 0 }),
+            ok: true,
+            headers: {
+                get: () => "application/json",
+            },
+        } as Response;
+    };
+    const client = createPcloudRemoteStorage({
+        hostname: "api.pcloud.com",
+        accessToken: "token-us",
+        fetch: fetchImpl,
+    });
+
+    const globalWithBuffer = globalThis as typeof globalThis & {
+        Buffer?: typeof Buffer;
+    };
+    const savedBuffer = globalWithBuffer.Buffer;
+    try {
+        globalWithBuffer.Buffer = undefined;
+        await client.putText("/MusicFree/MusicFreeBackup.json", "{\"ok\":true}");
+    } finally {
+        globalWithBuffer.Buffer = savedBuffer;
+    }
+
+    assert(
+        uploadBody instanceof Blob && uploadBody.size > 0,
+        "putText uploads via Blob without Node Buffer",
+    );
+}
+
 async function runTests(): Promise<void> {
     runTokenParseTests();
     await runAdapterTests();
     await runEuHostnameTest();
     await runInvalidTokenErrorTest();
+    await runRendererSafePutTextTest();
     runResolverPcloudClientTest();
 }
 

@@ -12,6 +12,38 @@
     gap: 18px;
   }
 
+  & .remote-backup-transport-status {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--textColor) 20%, transparent);
+    background-color: color-mix(in srgb, var(--textColor) 6%, transparent);
+
+    &[data-transport="pcloud"],
+    &[data-transport="webdav"] {
+      border-color: color-mix(in srgb, var(--primaryColor) 55%, transparent);
+      background-color: color-mix(in srgb, var(--primaryColor) 12%, transparent);
+    }
+
+    &[data-transport="none"] {
+      opacity: 0.8;
+    }
+  }
+
+  & .remote-backup-transport-status-label {
+    font-size: 0.9em;
+    opacity: 0.85;
+  }
+
+  & .remote-backup-transport-status-value {
+    font-size: 1.05em;
+    font-weight: 700;
+    color: var(--primaryColor);
+  }
+
   & .remote-backup-subsection-label {
     grid-column: 1 / -1;
     font-weight: 600;

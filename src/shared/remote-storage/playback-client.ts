@@ -47,7 +47,20 @@ async function withPlaybackFallback<T>(
     fallbackOp: (client: RemoteStorageClient) => Promise<T>,
     shouldFallback: (result: T) => boolean = () => false,
 ): Promise<T> {
-    const primary = getRemoteMusicClient();
+    let primary: RemoteStorageClient;
+    try {
+        primary = getRemoteMusicClient();
+    } catch (primaryError) {
+        if (!isWebdavPlaybackFallbackActive()) {
+            throw primaryError;
+        }
+        const fallback = getWebdavFallbackClient();
+        if (!fallback) {
+            throw primaryError;
+        }
+        return fallbackOp(fallback);
+    }
+
     try {
         const result = await primaryOp(primary);
         if (!shouldFallback(result)) {

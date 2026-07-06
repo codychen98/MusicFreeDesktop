@@ -1,3 +1,4 @@
+import { isValidPcloudTokenJson } from "./parse-pcloud-token";
 import { createWebdavRemoteStorage } from "./webdav-adapter";
 import {
     RemoteCredentialsIncompleteError,
@@ -31,7 +32,10 @@ function isPcloudCredentialsComplete(
     if (!pcloud) {
         return false;
     }
-    return Boolean(trim(pcloud.hostname) && trim(pcloud.tokenJson));
+    const tokenJson = trim(pcloud.tokenJson);
+    return Boolean(
+        trim(pcloud.hostname) && tokenJson && isValidPcloudTokenJson(tokenJson),
+    );
 }
 
 function loadWebdavClientFactory(): typeof import("./webdav-client") {

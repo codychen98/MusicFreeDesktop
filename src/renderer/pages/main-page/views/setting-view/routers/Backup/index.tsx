@@ -15,6 +15,7 @@ import { dialogUtil, fsUtil } from "@shared/utils/renderer";
 import {
     getRemoteMusicPath,
     getRemoteStorageCredentialsFromConfig,
+    isPcloudTokenFieldPresentButInvalidInConfig,
     isRemoteCredentialsCompleteInConfig,
 } from "@shared/remote-storage/remote-config";
 import { resolveRemoteTransport } from "@shared/remote-storage/resolve";
@@ -39,6 +40,8 @@ export default function Backup() {
     const activeTransport = resolveRemoteTransport(credentials);
     const remoteCredentialsComplete =
         isRemoteCredentialsCompleteInConfig(config);
+    const pcloudTokenInvalid =
+        isPcloudTokenFieldPresentButInvalidInConfig(config);
     const musicPathSet = Boolean(getRemoteMusicPath(config));
 
     function onBackupClick() {
@@ -131,6 +134,21 @@ export default function Backup() {
                 {t("settings.backup.backup_by_webdav")}
             </div>
             <div className="remote-backup-container">
+                <div
+                    className="remote-backup-transport-status"
+                    data-transport={activeTransport ?? "none"}
+                >
+                    <span className="remote-backup-transport-status-label">
+                        {t("settings.backup.remote_transport_status_label")}
+                    </span>
+                    <span className="remote-backup-transport-status-value">
+                        {activeTransport === "pcloud"
+                            ? t("settings.backup.remote_transport_status_pcloud")
+                            : activeTransport === "webdav"
+                                ? t("settings.backup.remote_transport_status_webdav")
+                                : t("settings.backup.remote_transport_status_none")}
+                    </span>
+                </div>
                 <div className="remote-backup-subsection-label">
                     {t("settings.backup.pcloud_api")}
                 </div>
@@ -155,6 +173,11 @@ export default function Backup() {
                         keyPath="backup.remote.pcloud.tokenJson"
                     ></InputSettingItem>
                 </div>
+                {pcloudTokenInvalid ? (
+                    <div className="label-container remote-backup-hint">
+                        {t("settings.backup.pcloud_token_invalid_hint")}
+                    </div>
+                ) : null}
                 <div className="remote-backup-subsection-label">
                     {t("settings.backup.webdav_credentials")}
                 </div>
@@ -194,15 +217,6 @@ export default function Backup() {
                         keyPath="backup.remote.musicPath"
                     ></InputSettingItem>
                 </div>
-                {activeTransport === "pcloud" ? (
-                    <div className="label-container remote-backup-hint">
-                        {t("settings.backup.remote_transport_active_pcloud")}
-                    </div>
-                ) : activeTransport === "webdav" ? (
-                    <div className="label-container remote-backup-hint">
-                        {t("settings.backup.remote_transport_active_webdav")}
-                    </div>
-                ) : null}
                 {!remoteCredentialsComplete ? (
                     <div className="label-container remote-backup-hint">
                         {t("settings.backup.remote_credentials_incomplete_hint")}
