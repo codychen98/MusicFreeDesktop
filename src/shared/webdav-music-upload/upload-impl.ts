@@ -7,10 +7,12 @@ import {
     isRemoteCredentialsCompleteInConfig,
 } from "@shared/remote-storage/remote-config";
 import {
-    createRemoteStorageClient,
+    createRemoteStorageClientWithTransport,
     resolveRemoteTransport,
 } from "@shared/remote-storage/resolve";
-import type { RemoteStorageClient } from "@shared/remote-storage/types";
+import { probeVerifiedRemoteTransport } from "@shared/remote-storage/probe-remote-transport";
+import type { RemoteStorageClient, RemoteTransport } from "@shared/remote-storage/types";
+import { RemoteTransportOfflineError } from "@shared/remote-storage/types";
 import {
     lyricSidecarFilename,
     remotePathFor,
@@ -70,19 +72,33 @@ export function getRemoteMusicConfig(): RemoteMusicConfig {
     return { musicPath, remoteDir };
 }
 
-export function getRemoteMusicClient(): RemoteStorageClient {
+async function resolveMusicUploadTransport(
+    creds: ReturnType<typeof getRemoteStorageCredentialsFromConfig>,
+): Promise<RemoteTransport> {
+    if (!resolveRemoteTransport(creds)) {
+        throw new RemoteMusicConfigIncompleteError();
+    }
+    const status = await probeVerifiedRemoteTransport(creds);
+    if (status === "pcloud" || status === "webdav") {
+        return status;
+    }
+    throw new RemoteTransportOfflineError();
+}
+
+export async function getRemoteMusicClient(): Promise<RemoteStorageClient> {
     const key = buildRemoteMusicClientCacheKey();
     if (!key) {
         throw new RemoteMusicConfigIncompleteError();
     }
-    if (cachedClient && cachedClientKey === key) {
+    const config = AppConfig.getAllConfig();
+    const creds = getRemoteStorageCredentialsFromConfig(config);
+    const transport = await resolveMusicUploadTransport(creds);
+    const cacheKey = `${key}\0${transport}`;
+    if (cachedClient && cachedClientKey === cacheKey) {
         return cachedClient;
     }
-    const config = AppConfig.getAllConfig();
-    cachedClient = createRemoteStorageClient(
-        getRemoteStorageCredentialsFromConfig(config),
-    );
-    cachedClientKey = key;
+    cachedClient = createRemoteStorageClientWithTransport(creds, transport);
+    cachedClientKey = cacheKey;
     return cachedClient;
 }
 
@@ -107,7 +123,7 @@ export async function uploadDownloadArtifacts(
     input: UploadDownloadArtifactsInput,
 ): Promise<UploadDownloadArtifactsResult> {
     const config = getRemoteMusicConfig();
-    const client = getRemoteMusicClient();
+    const client = await getRemoteMusicClient();
     await client.ensureDir(config.remoteDir);
 
     const remoteAudioPath = remotePathFor(config.remoteDir, input.audioFilename);
@@ -180,7 +196,7 @@ export async function remoteAudioExists(
     input: RemoteAudioExistsInput,
 ): Promise<RemoteAudioExistsResult> {
     const config = getRemoteMusicConfig();
-    const client = getRemoteMusicClient();
+    const client = await getRemoteMusicClient();
     const remoteAudioPath = remotePathFor(config.remoteDir, input.audioFilename);
     const exists = await client.exists(remoteAudioPath);
     return {

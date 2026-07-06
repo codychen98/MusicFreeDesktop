@@ -23,7 +23,7 @@ export async function deleteWebdavRemoteTrack(
         throw new Error("WEBDAV_REMOTE_PATH_MISSING");
     }
 
-    const client = getRemoteMusicClient();
+    const client = await getRemoteMusicClient();
     const paths = remotePathsForWebdavTrack(remoteAudioPath);
 
     try {

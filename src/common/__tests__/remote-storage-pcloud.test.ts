@@ -363,8 +363,8 @@ async function runRendererSafePutTextTest(): Promise<void> {
     }
 
     assert(
-        uploadBody instanceof Blob && uploadBody.size > 0,
-        "putText uploads via Blob without Node Buffer",
+        uploadBody instanceof Uint8Array && uploadBody.length > 0,
+        "putText uploads via Uint8Array without Node Buffer",
     );
 }
 

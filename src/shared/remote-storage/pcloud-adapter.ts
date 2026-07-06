@@ -192,17 +192,15 @@ export function createPcloudRemoteStorage(
             return;
         }
 
-        const payload = new Blob([body]);
         const url = buildUrl("uploadfile", params);
         const response = await fetchFn(url.toString(), {
             method: "PUT",
             headers: {
                 ...authHeaders(),
-                "Content-Length": String(payload.size),
+                "Content-Length": String(body.length),
                 "Content-Type": "application/octet-stream",
-                "Transfer-Encoding": "identity",
             },
-            body: payload,
+            body,
         });
         const data = (await response.json()) as PcloudJsonResponse;
         assertPcloudSuccess(data);
