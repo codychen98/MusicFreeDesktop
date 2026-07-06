@@ -317,7 +317,7 @@ async function runRendererSafePutTextTest(): Promise<void> {
             headers: {
                 get: () => "application/json",
             },
-        } as Response;
+        } as unknown as Response;
     };
     const client = createPcloudRemoteStorage({
         hostname: "api.pcloud.com",
