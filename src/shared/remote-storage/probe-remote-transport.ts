@@ -72,8 +72,10 @@ export async function probeVerifiedRemoteTransport(
 ): Promise<VerifiedRemoteTransportStatus> {
     const fetchFn = deps.fetch ?? fetch;
     const probeWebdavFn = deps.probeWebdav ?? probeWebdavConnection;
-    const pcloudReady = isPcloudCredentialsComplete(credentials.pcloud);
-    const webdavReady = isWebdavCredentialsComplete(credentials.webdav);
+    const pcloud = credentials.pcloud;
+    const webdav = credentials.webdav;
+    const pcloudReady = isPcloudCredentialsComplete(pcloud);
+    const webdavReady = isWebdavCredentialsComplete(webdav);
 
     if (!pcloudReady && !webdavReady) {
         return "none";
@@ -83,7 +85,7 @@ export async function probeVerifiedRemoteTransport(
         let pcloudOk = false;
         try {
             pcloudOk = await withProbeTimeout(
-                probePcloudConnection(credentials.pcloud!, fetchFn),
+                probePcloudConnection(pcloud, fetchFn),
             );
         } catch {
             pcloudOk = false;
@@ -94,9 +96,7 @@ export async function probeVerifiedRemoteTransport(
         if (webdavReady) {
             let webdavOk = false;
             try {
-                webdavOk = await withProbeTimeout(
-                    probeWebdavFn(credentials.webdav!),
-                );
+                webdavOk = await withProbeTimeout(probeWebdavFn(webdav));
             } catch {
                 webdavOk = false;
             }
@@ -105,11 +105,15 @@ export async function probeVerifiedRemoteTransport(
         return "offline";
     }
 
-    let webdavOk = false;
-    try {
-        webdavOk = await withProbeTimeout(probeWebdavFn(credentials.webdav!));
-    } catch {
-        webdavOk = false;
+    if (webdavReady) {
+        let webdavOk = false;
+        try {
+            webdavOk = await withProbeTimeout(probeWebdavFn(webdav));
+        } catch {
+            webdavOk = false;
+        }
+        return webdavOk ? "webdav" : "offline";
     }
-    return webdavOk ? "webdav" : "offline";
+
+    return "none";
 }

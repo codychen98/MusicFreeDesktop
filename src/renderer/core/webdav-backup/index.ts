@@ -55,7 +55,7 @@ async function createRemoteBackupClient() {
 }
 
 export async function fetchRemoteBackupRaw(): Promise<string | null> {
-    const client = createRemoteBackupClient();
+    const client = await createRemoteBackupClient();
     const paths = getBackupPathsFromConfig();
 
     if (await client.exists(paths.file)) {
@@ -73,7 +73,7 @@ export async function fetchRemoteBackupRaw(): Promise<string | null> {
 }
 
 export async function uploadBackupToWebdav(): Promise<void> {
-    const client = createRemoteBackupClient();
+    const client = await createRemoteBackupClient();
     const paths = getBackupPathsFromConfig();
     const basePayload = await BackupResume.exportBackupPayload();
     const payload = BackupResume.withWebdavUploadSyncMeta(basePayload);
