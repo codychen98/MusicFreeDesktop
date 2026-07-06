@@ -39,6 +39,7 @@ function fileEntryToMusicItem(entry: RemoteDirectoryEntry): IMusic.IMusicItem {
     const parsed = parseDownloadBasename(withoutExt);
     if (parsed) {
         return {
+            platform: remoteMusicPluginName,
             title: parsed.title,
             id: entry.path,
             artist: parsed.artist,
@@ -46,6 +47,7 @@ function fileEntryToMusicItem(entry: RemoteDirectoryEntry): IMusic.IMusicItem {
         };
     }
     return {
+        platform: remoteMusicPluginName,
         title: withoutExt || basename,
         id: entry.path,
         artist: "未知作者",
@@ -119,14 +121,14 @@ function remoteMusicPluginDefine(): IPlugin.IPluginInstance {
         _path: "",
         async search(query, _page, type) {
             if (type !== "music") {
-                return { isEnd: true, data: [] };
+                return { isEnd: true, data: [] as IMedia.SupportMediaItem[typeof type][] };
             }
             const files = await loadCachedAudioFiles();
             return {
                 isEnd: true,
                 data: files
                     .filter((entry) => entry.basename.includes(query))
-                    .map(fileEntryToMusicItem),
+                    .map(fileEntryToMusicItem) as IMedia.SupportMediaItem[typeof type][],
             };
         },
         async getTopLists() {
@@ -144,6 +146,7 @@ function remoteMusicPluginDefine(): IPlugin.IPluginInstance {
                 {
                     title: "全部歌曲",
                     data: segments.map((segment) => ({
+                        platform: remoteMusicPluginName,
                         title: segment,
                         id: segment,
                     })),

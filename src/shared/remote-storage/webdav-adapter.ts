@@ -1,29 +1,15 @@
-import type { WebDAVClient } from "webdav";
+import type { FileStat, WebDAVClient } from "webdav";
 
 import { normalizeRemotePath } from "./paths";
 import type { RemoteDirectoryEntry, RemoteStorageClient } from "./types";
 
 function isFileStatArray(
     value: Awaited<ReturnType<WebDAVClient["getDirectoryContents"]>>,
-): value is Array<{
-    filename: string;
-    basename: string;
-    size: number;
-    type: "file" | "directory";
-    mime?: string;
-}> {
+): value is FileStat[] {
     return Array.isArray(value);
 }
 
-function toDirectoryEntries(
-    items: Array<{
-        filename: string;
-        basename: string;
-        size: number;
-        type: "file" | "directory";
-        mime?: string;
-    }>,
-): RemoteDirectoryEntry[] {
+function toDirectoryEntries(items: FileStat[]): RemoteDirectoryEntry[] {
     return items.map((item) => ({
         path: normalizeRemotePath(item.filename),
         basename: item.basename,
