@@ -43,11 +43,12 @@ export function createPcloudFetch(): PcloudFetch {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             require("undici") as typeof import("undici");
         const dispatcher = new ProxyAgent(proxyUrl);
-        return (input, init) =>
+        const proxiedFetch: PcloudFetch = (input, init) =>
             undiciFetch(input, {
-                ...init,
+                ...(init ?? {}),
                 dispatcher,
-            } as RequestInit);
+            } as import("undici").RequestInit) as unknown as Promise<Response>;
+        return proxiedFetch;
     } catch {
         return fetch;
     }
