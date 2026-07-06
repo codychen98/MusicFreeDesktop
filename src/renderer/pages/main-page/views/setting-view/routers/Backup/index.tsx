@@ -27,6 +27,7 @@ const PCLOUD_HOSTNAME_OPTIONS = [
 export default function Backup() {
     const { t } = useTranslation();
     useAppConfig("backup.webdav.url");
+    useAppConfig("backup.webdav.rootPath");
     useAppConfig("backup.webdav.username");
     useAppConfig("backup.webdav.password");
     useAppConfig("backup.remote.pcloud.hostname");
@@ -163,6 +164,15 @@ export default function Backup() {
                     trim
                     keyPath="backup.webdav.url"
                 ></InputSettingItem>
+                <InputSettingItem
+                    width="100%"
+                    label={t("settings.backup.webdav_root_path")}
+                    trim
+                    keyPath="backup.webdav.rootPath"
+                ></InputSettingItem>
+                <div className="label-container remote-backup-hint">
+                    {t("settings.backup.webdav_root_path_hint")}
+                </div>
                 <InputSettingItem
                     width="100%"
                     label={t("settings.backup.username")}

@@ -1,10 +1,16 @@
 import { AuthType, createClient, type WebDAVClient } from "webdav";
 
 import { createWebdavRemoteStorage } from "./webdav-adapter";
+import {
+    normalizeWebdavCredentialsUrl,
+    normalizeWebdavServerUrl,
+    resolveWebdavClientPath,
+} from "./remote-paths";
 import type { RemoteStorageClient , WebdavCredentials } from "./types";
 
 export function createWebdavClient(credentials: WebdavCredentials): WebDAVClient {
-    return createClient(credentials.url, {
+    const serverUrl = normalizeWebdavServerUrl(credentials.url);
+    return createClient(serverUrl, {
         authType: AuthType.Password,
         username: credentials.username,
         password: credentials.password,
@@ -14,5 +20,14 @@ export function createWebdavClient(credentials: WebdavCredentials): WebDAVClient
 export function createWebdavRemoteStorageFromCredentials(
     credentials: WebdavCredentials,
 ): RemoteStorageClient {
-    return createWebdavRemoteStorage(createWebdavClient(credentials));
+    const originalUrl = normalizeWebdavCredentialsUrl(credentials.url);
+    const serverUrl = normalizeWebdavServerUrl(originalUrl);
+    const rootPath = credentials.rootPath ?? "";
+    const client = createWebdavClient({
+        ...credentials,
+        url: serverUrl,
+    });
+    const pathFor = (path: string) =>
+        resolveWebdavClientPath(serverUrl, rootPath, path);
+    return createWebdavRemoteStorage(client, pathFor);
 }

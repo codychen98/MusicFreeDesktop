@@ -1,5 +1,10 @@
 import type { IAppConfig } from "@/types/app-config";
 import { resolveFirstSearchPathSegment } from "../../common/webdav-download-path";
+import {
+    normalizeWebdavRootPath,
+    normalizeWebdavServerUrl,
+    splitWebdavUrlIntoServerAndRoot,
+} from "./remote-paths";
 import { resolveRemoteTransport } from "./resolve";
 import type { RemoteStorageCredentials } from "./types";
 
@@ -39,12 +44,17 @@ export function isRemoteCredentialsCompleteInConfig(
     );
 }
 
+export function getWebdavRootPath(config: IAppConfig): string {
+    return normalizeWebdavRootPath(config["backup.webdav.rootPath"]);
+}
+
 export function getRemoteStorageCredentialsFromConfig(
     config: IAppConfig,
 ): RemoteStorageCredentials {
     return {
         webdav: {
-            url: config["backup.webdav.url"] ?? "",
+            url: normalizeWebdavServerUrl(config["backup.webdav.url"] ?? ""),
+            rootPath: getWebdavRootPath(config),
             username: config["backup.webdav.username"] ?? "",
             password: config["backup.webdav.password"] ?? "",
         },
@@ -126,6 +136,24 @@ export function normalizeRemoteConfigPatch(patch: IAppConfig): IAppConfig {
     }
     if (result["backup.webdav.autoSync"] === false) {
         result["backup.webdav.pendingPush"] = false;
+    }
+
+    if ("backup.webdav.rootPath" in result) {
+        result["backup.webdav.rootPath"] = normalizeWebdavRootPath(
+            result["backup.webdav.rootPath"],
+        );
+    }
+    if ("backup.webdav.url" in result) {
+        const split = splitWebdavUrlIntoServerAndRoot(
+            result["backup.webdav.url"] ?? "",
+        );
+        result["backup.webdav.url"] = split.serverUrl;
+        if (
+            split.rootPath
+            && !normalizeWebdavRootPath(result["backup.webdav.rootPath"])
+        ) {
+            result["backup.webdav.rootPath"] = split.rootPath;
+        }
     }
 
     return result;

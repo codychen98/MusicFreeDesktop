@@ -29,6 +29,7 @@ const _defaultAppConfig: IAppConfig =  {
     "download.destination": "local",
     "normal.musicListColumnsShown": [],
     "backup.resumeBehavior": "append",
+    "backup.webdav.rootPath": "",
     "backup.webdav.autoSync": false,
     "backup.webdav.pendingPush": false,
     "backup.remote.musicPath": "",

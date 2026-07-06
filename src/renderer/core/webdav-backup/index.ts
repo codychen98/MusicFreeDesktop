@@ -7,9 +7,11 @@ import {
 import { cancelScheduledWebdavUpload } from "@/renderer/core/webdav-sync/upload";
 import {
     getRemoteStorageCredentialsFromConfig,
+    getWebdavRootPath,
     isRemoteCredentialsCompleteInConfig,
 } from "@shared/remote-storage/remote-config";
 import { createRemoteStorageClient } from "@shared/remote-storage/resolve";
+import { getRemoteBackupPaths } from "@shared/remote-storage/remote-paths";
 import { RemoteCredentialsIncompleteError } from "@shared/remote-storage/types";
 import type { TFunction } from "i18next";
 import { toast } from "react-toastify";
@@ -18,8 +20,12 @@ function getErrorReason(error: unknown) {
     return error instanceof Error ? error.message : String(error);
 }
 
-const REMOTE_BACKUP_DIR = "/MusicFree";
-const REMOTE_BACKUP_FILE = "/MusicFree/MusicFreeBackup.json";
+
+function getBackupPathsFromConfig() {
+    return getRemoteBackupPaths(
+        getWebdavRootPath(AppConfig.getAllConfig()),
+    );
+}
 
 /** @deprecated Use `RemoteCredentialsIncompleteError` */
 export class WebdavCredentialsIncompleteError extends RemoteCredentialsIncompleteError {
@@ -41,22 +47,31 @@ function createRemoteBackupClient() {
 
 export async function fetchRemoteBackupRaw(): Promise<string | null> {
     const client = createRemoteBackupClient();
+    const paths = getBackupPathsFromConfig();
 
-    if (!(await client.exists(REMOTE_BACKUP_FILE))) {
-        return null;
+    if (await client.exists(paths.file)) {
+        return client.getText(paths.file);
     }
 
-    return client.getText(REMOTE_BACKUP_FILE);
+    if (
+        paths.legacyFile !== paths.file
+        && (await client.exists(paths.legacyFile))
+    ) {
+        return client.getText(paths.legacyFile);
+    }
+
+    return null;
 }
 
 export async function uploadBackupToWebdav(): Promise<void> {
     const client = createRemoteBackupClient();
+    const paths = getBackupPathsFromConfig();
     const basePayload = await BackupResume.exportBackupPayload();
     const payload = BackupResume.withWebdavUploadSyncMeta(basePayload);
     const backUp = BackupResume.serializeBackupPayload(payload);
 
-    await client.ensureDir(REMOTE_BACKUP_DIR);
-    await client.putText(REMOTE_BACKUP_FILE, backUp);
+    await client.ensureDir(paths.dir);
+    await client.putText(paths.file, backUp);
 }
 
 export async function backupMusicSheetsToWebdav(t: TFunction) {

@@ -71,6 +71,7 @@ export function createRemoteStorageClient(
             loadWebdavClientFactory();
         return createWebdavRemoteStorageFromCredentials({
             url: trim(credentials.webdav!.url),
+            rootPath: trim(credentials.webdav!.rootPath ?? ""),
             username: trim(credentials.webdav!.username),
             password: trim(credentials.webdav!.password),
         });

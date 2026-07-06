@@ -55,7 +55,7 @@ function buildRemoteMusicClientCacheKey(): string {
     }
     if (transport === "webdav") {
         const webdav = creds.webdav!;
-        return `webdav\0${webdav.url}\0${webdav.username}\0${webdav.password}`;
+        return `webdav\0${webdav.url}\0${webdav.rootPath ?? ""}\0${webdav.username}\0${webdav.password}`;
     }
     return "";
 }

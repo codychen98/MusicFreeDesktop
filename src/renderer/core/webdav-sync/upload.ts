@@ -87,6 +87,7 @@ export function setupWebdavAutoSync(): void {
         }
         const credentialsTouched =
             "backup.webdav.url" in patch
+            || "backup.webdav.rootPath" in patch
             || "backup.webdav.username" in patch
             || "backup.webdav.password" in patch
             || "backup.remote.pcloud.hostname" in patch

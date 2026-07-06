@@ -87,8 +87,10 @@ interface _IAppConfig {
 
     /** 恢复歌单时行为 */
     "backup.resumeBehavior": "append" | "overwrite";
-    /** URL */
+    /** WebDAV server URL (host only for pCloud) */
     "backup.webdav.url": string;
+    /** Cloud root folder for backup JSON and relative paths */
+    "backup.webdav.rootPath": string;
     /** 用户名 */
     "backup.webdav.username": string;
     /** 密码 */

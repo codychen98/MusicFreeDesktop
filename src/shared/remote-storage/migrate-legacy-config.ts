@@ -5,6 +5,10 @@ import {
     isWebdavCredentialsCompleteInConfig,
     REMOTE_MUSIC_PLUGIN_PLATFORM,
 } from "./remote-config";
+import {
+    normalizeWebdavRootPath,
+    splitWebdavUrlIntoServerAndRoot,
+} from "./remote-paths";
 
 export interface LegacyRemoteConfigMigrationContext {
     rawKeys: ReadonlySet<string>;
@@ -65,6 +69,27 @@ function buildSyncFlagMigrationPatch(
     return patch;
 }
 
+function buildWebdavUrlRootMigrationPatch(
+    config: IAppConfig,
+    rawKeys: ReadonlySet<string>,
+): IAppConfig {
+    const patch: IAppConfig = {};
+    const currentUrl = trim(config["backup.webdav.url"]);
+    const currentRoot = normalizeWebdavRootPath(config["backup.webdav.rootPath"]);
+
+    if (currentUrl && !currentRoot) {
+        const split = splitWebdavUrlIntoServerAndRoot(currentUrl);
+        if (split.rootPath && split.serverUrl !== currentUrl) {
+            patch["backup.webdav.url"] = split.serverUrl;
+            if (!rawKeys.has("backup.webdav.rootPath") || !currentRoot) {
+                patch["backup.webdav.rootPath"] = split.rootPath;
+            }
+        }
+    }
+
+    return patch;
+}
+
 /**
  * One-time migration from external WebDAV plugin meta and legacy WebDAV sync keys.
  * Does not write back to plugin meta.
@@ -103,6 +128,7 @@ export function buildLegacyRemoteConfigMigration(
     }
 
     Object.assign(patch, buildSyncFlagMigrationPatch(config, rawKeys));
+    Object.assign(patch, buildWebdavUrlRootMigrationPatch(config, rawKeys));
 
     const migrated = Object.keys(patch).length > 0;
     if (migrated) {

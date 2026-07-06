@@ -1,5 +1,7 @@
 export interface WebdavCredentials {
     url: string;
+    /** Cloud root folder, e.g. /(Reinstall)/BACKUP */
+    rootPath?: string;
     username: string;
     password: string;
 }

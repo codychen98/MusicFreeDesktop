@@ -21,12 +21,13 @@ function getWebdavFallbackClient(): RemoteStorageClient | null {
     }
     const creds = getRemoteStorageCredentialsFromConfig(config);
     const webdav = creds.webdav!;
-    const key = `webdav\0${webdav.url}\0${webdav.username}\0${webdav.password}`;
+    const key = `webdav\0${webdav.url}\0${webdav.rootPath ?? ""}\0${webdav.username}\0${webdav.password}`;
     if (cachedWebdavFallbackClient && cachedWebdavFallbackKey === key) {
         return cachedWebdavFallbackClient;
     }
     cachedWebdavFallbackClient = createWebdavRemoteStorageClient({
         url: webdav.url.trim(),
+        rootPath: webdav.rootPath?.trim() ?? "",
         username: webdav.username.trim(),
         password: webdav.password.trim(),
     });

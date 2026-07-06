@@ -19,9 +19,10 @@ function toDirectoryEntries(items: FileStat[]): RemoteDirectoryEntry[] {
     }));
 }
 
-export function createWebdavRemoteStorage(client: WebDAVClient): RemoteStorageClient {
-    const pathFor = (path: string) => normalizeRemotePath(path);
-
+export function createWebdavRemoteStorage(
+    client: WebDAVClient,
+    pathFor: (path: string) => string = normalizeRemotePath,
+): RemoteStorageClient {
     return {
         async exists(path) {
             return client.exists(pathFor(path));
