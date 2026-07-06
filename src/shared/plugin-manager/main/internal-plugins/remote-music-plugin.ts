@@ -4,6 +4,7 @@ import AppConfig from "@shared/app-config/main";
 import { getRemoteMusicPath, getRemoteStorageCredentialsFromConfig } from "@shared/remote-storage/remote-config";
 import { resolveRemoteTransport } from "@shared/remote-storage/resolve";
 import type { RemoteDirectoryEntry, RemoteStorageClient } from "@shared/remote-storage/types";
+import { getRemoteDownloadUrl } from "@shared/remote-storage/playback-client";
 import { getRemoteMusicClient } from "@shared/webdav-music-upload/upload-impl";
 
 import { Plugin } from "../plugin";
@@ -172,8 +173,7 @@ function remoteMusicPluginDefine(): IPlugin.IPluginInstance {
             }
         },
         async getMediaSource(musicItem) {
-            const client = getRemoteMusicClient();
-            const url = await client.getDownloadUrl(musicItem.id);
+            const url = await getRemoteDownloadUrl(musicItem.id);
             return { url };
         },
     };

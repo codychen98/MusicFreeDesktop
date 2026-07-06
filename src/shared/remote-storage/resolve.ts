@@ -78,6 +78,15 @@ export function createRemoteStorageClient(
     throw new RemoteCredentialsIncompleteError();
 }
 
+export function shouldUseWebdavPlaybackFallback(
+    credentials: RemoteStorageCredentials,
+): boolean {
+    return (
+        resolveRemoteTransport(credentials) === "pcloud"
+        && isWebdavCredentialsComplete(credentials.webdav)
+    );
+}
+
 export function createWebdavRemoteStorageClient(
     credentials: WebdavCredentials,
 ): RemoteStorageClient {

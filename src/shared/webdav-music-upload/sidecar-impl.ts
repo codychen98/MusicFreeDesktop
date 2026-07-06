@@ -1,5 +1,8 @@
 import logger from "@shared/logger/main";
-import type { RemoteStorageClient } from "@shared/remote-storage/types";
+import {
+    getRemoteTextForPlayback,
+    remoteExistsForPlayback,
+} from "@shared/remote-storage/playback-client";
 import { remotePathsForWebdavTrack } from "@/common/webdav-download-path";
 
 import { getRemoteMusicClient } from "./upload-impl";
@@ -9,13 +12,12 @@ import type {
 } from "./types";
 
 async function readRemoteTextIfExists(
-    client: RemoteStorageClient,
     remotePath: string,
 ): Promise<string | undefined> {
-    if (!(await client.exists(remotePath))) {
+    if (!(await remoteExistsForPlayback(remotePath))) {
         return undefined;
     }
-    const contents = await client.getText(remotePath);
+    const contents = await getRemoteTextForPlayback(remotePath);
     if (!contents.trim()) {
         return undefined;
     }
@@ -30,15 +32,11 @@ export async function fetchRemoteSidecarLyrics(
         return {};
     }
 
-    const client = getRemoteMusicClient();
     const paths = remotePathsForWebdavTrack(normalizedPath);
 
     try {
-        const rawLrc = await readRemoteTextIfExists(client, paths.lrcPath);
-        const translation = await readRemoteTextIfExists(
-            client,
-            paths.tranLrcPath,
-        );
+        const rawLrc = await readRemoteTextIfExists(paths.lrcPath);
+        const translation = await readRemoteTextIfExists(paths.tranLrcPath);
         return {
             ...(rawLrc !== undefined ? { rawLrc } : {}),
             ...(translation !== undefined ? { translation } : {}),
