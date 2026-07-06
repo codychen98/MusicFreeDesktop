@@ -85,8 +85,20 @@ function assertPcloudSuccess(data: PcloudJsonResponse): void {
     throw new PcloudApiError(data.result, data.error ?? "unknown error");
 }
 
+/** pCloud uses 2055 for missing paths on stat; 2009 appears in older samples. */
 function isNotFoundError(error: unknown): boolean {
-    return error instanceof PcloudApiError && error.code === 2009;
+    return (
+        error instanceof PcloudApiError
+        && (error.code === 2009 || error.code === 2055)
+    );
+}
+
+function splitPathSegments(path: string): string[] {
+    const normalized = normalizeRemotePath(path);
+    if (normalized === "/") {
+        return [];
+    }
+    return normalized.slice(1).split("/").filter((segment) => segment.length > 0);
 }
 
 function encodeUtf8(text: string): Uint8Array {
@@ -237,7 +249,12 @@ export function createPcloudRemoteStorage(
         },
 
         async ensureDir(path) {
-            await callJson("createfolderifnotexists", { path: pathFor(path) });
+            const segments = splitPathSegments(path);
+            let current = "";
+            for (const segment of segments) {
+                current = `${current}/${segment}`;
+                await callJson("createfolderifnotexists", { path: current });
+            }
         },
 
         async deleteFile(path) {

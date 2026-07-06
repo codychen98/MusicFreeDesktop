@@ -145,8 +145,8 @@ async function runAdapterTests(): Promise<void> {
             );
             if (request.url.includes("path=%2Fmissing.txt")) {
                 return jsonResponse({
-                    result: 2009,
-                    error: "File not found.",
+                    result: 2055,
+                    error: "File or folder not found.",
                 });
             }
             return jsonResponse({
@@ -210,7 +210,7 @@ async function runAdapterTests(): Promise<void> {
 
     assert(
         !(await client.exists("/missing.txt")),
-        "exists returns false for 2009 stat",
+        "exists returns false for 2055 stat",
     );
     assert(
         await client.exists("/MusicFree/MusicFreeBackup.json"),
@@ -240,6 +240,32 @@ async function runAdapterTests(): Promise<void> {
                 request.headers.authorization === "Bearer token-us",
         ),
         "requests include bearer authorization",
+    );
+}
+
+async function runRecursiveEnsureDirTest(): Promise<void> {
+    const createdPaths: string[] = [];
+    const { fetch } = createMockFetch({
+        createfolderifnotexists: (request) => {
+            const path = new URL(request.url).searchParams.get("path") ?? "";
+            createdPaths.push(path);
+            return jsonResponse({
+                result: 0,
+                metadata: { path, isfolder: true },
+            });
+        },
+    });
+
+    const client = createPcloudRemoteStorage({
+        hostname: "api.pcloud.com",
+        accessToken: "token-us",
+        fetch,
+    });
+    await client.ensureDir("/(Reinstall)/BACKUP/MusicFree/Download");
+    assert(
+        createdPaths.join("|") ===
+            "/(Reinstall)|/(Reinstall)/BACKUP|/(Reinstall)/BACKUP/MusicFree|/(Reinstall)/BACKUP/MusicFree/Download",
+        "ensureDir creates each path segment",
     );
 }
 
@@ -345,6 +371,7 @@ async function runRendererSafePutTextTest(): Promise<void> {
 async function runTests(): Promise<void> {
     runTokenParseTests();
     await runAdapterTests();
+    await runRecursiveEnsureDirTest();
     await runEuHostnameTest();
     await runInvalidTokenErrorTest();
     await runRendererSafePutTextTest();
