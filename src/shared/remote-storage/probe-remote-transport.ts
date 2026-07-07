@@ -1,5 +1,4 @@
 import { parsePcloudTokenJson } from "./parse-pcloud-token";
-import { createPcloudFetch } from "./pcloud-fetch";
 import {
     isPcloudCredentialsComplete,
     isWebdavCredentialsComplete,
@@ -71,7 +70,7 @@ export async function probeVerifiedRemoteTransport(
     credentials: RemoteStorageCredentials,
     deps: ProbeRemoteTransportDeps = {},
 ): Promise<VerifiedRemoteTransportStatus> {
-    const fetchFn = deps.fetch ?? createPcloudFetch();
+    const fetchFn = deps.fetch ?? fetch;
     const probeWebdavFn = deps.probeWebdav ?? probeWebdavConnection;
     const pcloud = credentials.pcloud;
     const webdav = credentials.webdav;
