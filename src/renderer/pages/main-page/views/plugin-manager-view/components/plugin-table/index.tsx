@@ -18,6 +18,7 @@ import { produce } from "immer";
 import { i18n } from "@/shared/i18n/renderer";
 import { remoteMusicPluginHash } from "@/common/constant";
 import PluginManager, { useSortedPlugins } from "@shared/plugin-manager/renderer";
+import { markWebdavLocalMutation } from "@/renderer/core/webdav-sync/upload";
 
 const t = i18n.t;
 
@@ -278,6 +279,7 @@ export default function PluginTable() {
         AppConfig.setConfig({
             "private.pluginMeta": newMeta,
         });
+        markWebdavLocalMutation();
     }
 
     return (

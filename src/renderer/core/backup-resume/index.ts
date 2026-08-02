@@ -1,9 +1,12 @@
 import MusicSheet from "../music-sheet";
+import AppConfig from "@shared/app-config/renderer";
 import { runWithoutWebdavSyncNotify } from "@/renderer/core/webdav-sync/upload";
 import { collectBackupPlugins, resumeBackupPlugins } from "./plugins";
 import { withWebdavUploadSyncMeta } from "./sync-meta";
 import {
+    applyBackupOrderToPluginMeta,
     parseBackupPayload,
+    pluginMetaToBackupOrder,
     type IBackupPayload,
 } from "./types";
 
@@ -23,7 +26,14 @@ export type BackupResumeOptions = {
 export async function exportBackupPayload(): Promise<IBackupPayload> {
     const musicSheets = await MusicSheet.frontend.exportAllSheetDetails();
     const plugins = collectBackupPlugins();
-    return { musicSheets, plugins };
+    const pluginOrder = pluginMetaToBackupOrder(
+        AppConfig.getConfig("private.pluginMeta"),
+    );
+    return {
+        musicSheets,
+        plugins,
+        ...(pluginOrder ? { pluginOrder } : {}),
+    };
 }
 
 export function serializeBackupPayload(payload: IBackupPayload) {
@@ -70,7 +80,18 @@ async function resume(
 ) {
     const restorePlugins = options?.restorePlugins !== false;
     return runWithoutWebdavSyncNotify(async () => {
-        const { musicSheets, plugins } = parseBackupPayload(data);
+        const { musicSheets, plugins, pluginOrder } = parseBackupPayload(data);
+
+        // Apply even when restorePlugins is false (WebDAV pull); missing field = no-op.
+        const nextPluginMeta = applyBackupOrderToPluginMeta(
+            AppConfig.getConfig("private.pluginMeta"),
+            pluginOrder,
+        );
+        if (nextPluginMeta) {
+            AppConfig.setConfig({
+                "private.pluginMeta": nextPluginMeta,
+            });
+        }
 
         if (restorePlugins) {
             await resumeBackupPlugins(plugins);
