@@ -212,20 +212,13 @@ export function createPcloudRemoteStorage(
             return metadata !== null;
         },
 
+        // Do not use pCloud's `gettextfile` here: that endpoint ignores OAuth
+        // credentials (Bearer header and access_token param both yield result
+        // 1000 "Log in required"), so reads must go through getfilelink's
+        // presigned download URL like getBinary does.
         async getText(path) {
-            const url = buildUrl("gettextfile", { path: pathFor(path) });
-            const response = await fetchFn(url.toString(), {
-                headers: authHeaders(),
-            });
-            const contentType = response.headers.get("content-type") ?? "";
-            if (contentType.includes("application/json")) {
-                const data = (await response.json()) as PcloudJsonResponse;
-                assertPcloudSuccess(data);
-            }
-            if (!response.ok) {
-                throw new PcloudApiError(response.status, "gettextfile failed");
-            }
-            return response.text();
+            const binary = await this.getBinary(path);
+            return new TextDecoder().decode(binary);
         },
 
         async getBinary(path) {

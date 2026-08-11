@@ -172,15 +172,25 @@ async function runAdapterTests(): Promise<void> {
             );
             return jsonResponse({ result: 0, metadata: [] });
         },
-        gettextfile: () =>
-            new Response("{\"ok\":true}", {
-                headers: { "content-type": "text/plain" },
-            }),
-        getfilelink: () =>
-            jsonResponse({
+        // No gettextfile handler on purpose: the endpoint rejects OAuth tokens
+        // (result 1000 "Log in required"), so getText must never call it.
+        getfilelink: (request) => {
+            if (request.url.includes("MusicFreeBackup.json")) {
+                return jsonResponse({
+                    result: 0,
+                    hosts: ["dl1.pcloud.com"],
+                    path: "/DL/MusicFreeBackup.json",
+                });
+            }
+            return jsonResponse({
                 result: 0,
                 hosts: ["dl1.pcloud.com"],
                 path: "/DL/song.flac",
+            });
+        },
+        "DL/MusicFreeBackup.json": () =>
+            new Response("{\"ok\":true}", {
+                headers: { "content-type": "application/octet-stream" },
             }),
         listfolder: () =>
             jsonResponse({
@@ -221,6 +231,10 @@ async function runAdapterTests(): Promise<void> {
     await client.putText("/MusicFree/MusicFreeBackup.json", "{\"ok\":true}");
     const text = await client.getText("/MusicFree/MusicFreeBackup.json");
     assert(text === "{\"ok\":true}", "getText returns body");
+    assert(
+        requests.every((request) => !request.url.includes("gettextfile")),
+        "getText avoids OAuth-incompatible gettextfile endpoint",
+    );
 
     const downloadUrl = await client.getDownloadUrl("/Music/song.flac");
     assert(
@@ -237,9 +251,11 @@ async function runAdapterTests(): Promise<void> {
     assert(
         requests.every(
             (request) =>
-                request.headers.authorization === "Bearer token-us",
+                // Presigned download URLs are fetched without auth by design.
+                request.url.includes("dl1.pcloud.com")
+                || request.headers.authorization === "Bearer token-us",
         ),
-        "requests include bearer authorization",
+        "API requests include bearer authorization",
     );
 }
 
